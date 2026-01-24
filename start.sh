@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Set Chromium path for Puppeteer (used by Remotion)
 export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Navigate to the server directory
-cd remotion-render-server
+cd remotion-render-server || { echo "Error: remotion-render-server directory not found"; exit 1; }
 
 # Install dependencies if node_modules doesn't exist
 if [ ! -d "node_modules" ]; then
