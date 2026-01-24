@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const { bundle } = require('@remotion/bundler');
 const { renderMedia, selectComposition } = require('@remotion/renderer');
 const { createClient } = require('@supabase/supabase-js');
@@ -10,6 +11,18 @@ const os = require('os');
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Rate limiting to prevent abuse
+const renderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 render requests per windowMs
+  message: {
+    success: false,
+    error: 'Too many render requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Validate required environment variables
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
@@ -28,7 +41,7 @@ app.get('/health', (req, res) => {
 });
 
 // Main render endpoint
-app.post('/render', async (req, res) => {
+app.post('/render', renderLimiter, async (req, res) => {
   try {
     const { code, composition, inputProps } = req.body;
     
@@ -115,7 +128,7 @@ app.post('/render', async (req, res) => {
 });
 
 // Quick render endpoint (for testing)
-app.post('/render-simple', async (req, res) => {
+app.post('/render-simple', renderLimiter, async (req, res) => {
   try {
     const { text, duration } = req.body;
     

@@ -7,6 +7,7 @@ A simple Express server that renders Remotion videos and uploads them to Supabas
 - **Health Check Endpoint**: `/health` - Check server status
 - **Main Render Endpoint**: `/render` - Render custom Remotion compositions
 - **Simple Render Endpoint**: `/render-simple` - Quick testing endpoint
+- **Rate Limiting**: Protects against abuse (10 requests per 15 minutes per IP)
 
 ## Setup
 
