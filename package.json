@@ -1,0 +1,12 @@
+{
+  "name": "remorender",
+  "version": "1.0.0",
+  "description": "Remotion Rendering Server for Railway",
+  "scripts": {
+    "start": "cd remotion-render-server && npm start",
+    "install": "cd remotion-render-server && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
