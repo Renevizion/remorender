@@ -53,6 +53,19 @@ railway up
 railway domain
 ```
 
+### Option C: Deploy with Railpack
+
+Railpack will automatically detect and deploy the application using the included `start.sh` script.
+
+1. Go to [Railpack](https://railpack.com)
+2. Connect your GitHub repository
+3. Railpack will automatically:
+   - Detect the `start.sh` script
+   - Install system dependencies (Chromium, FFmpeg) from `Aptfile`
+   - Install Node.js dependencies
+   - Start the server
+4. Configure environment variables in Railpack dashboard (see Step 3 below)
+
 ## Step 3: Configure Environment Variables (1 minute)
 
 In your Railway project dashboard:

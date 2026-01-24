@@ -1,6 +1,6 @@
-# Remorender - Remotion Rendering Server for Railway
+# Remorender - Remotion Rendering Server
 
-A complete solution for rendering Remotion videos on Railway with client integration examples. This project includes a Node.js/Express server that renders Remotion compositions and uploads them to Supabase storage, along with TypeScript/React client code for easy integration.
+A complete solution for rendering Remotion videos on Railway/Railpack with client integration examples. This project includes a Node.js/Express server that renders Remotion compositions and uploads them to Supabase storage, along with TypeScript/React client code for easy integration.
 
 ## Project Structure
 
@@ -26,7 +26,7 @@ remorender/
 
 - 🎥 Render custom Remotion compositions on-demand
 - ☁️ Automatic upload to Supabase storage
-- 🚀 Deploy to Railway with one click
+- 🚀 Deploy to Railway or Railpack with one click
 - 🔄 Health check endpoint for monitoring
 - 📦 Simple API for client integration
 - 🎨 React components for UI integration
@@ -34,12 +34,18 @@ remorender/
 
 ## Quick Start
 
-### 1. Deploy Server to Railway
+### 1. Deploy Server
 
-#### Option A: One-Click Deploy
+#### Option A: Deploy with Railpack
+1. Go to [Railpack](https://railpack.com)
+2. Connect your GitHub repository (`Renevizion/remorender`)
+3. Railpack will automatically detect and build using `start.sh`
+4. Add environment variables (see step 2 below)
+
+#### Option B: One-Click Deploy on Railway
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
 
-#### Option B: Using Railway Dashboard
+#### Option C: Using Railway Dashboard
 1. Go to [Railway](https://railway.app)
 2. Click "New Project" → "Deploy from GitHub repo"
 3. Connect this repository
@@ -49,7 +55,7 @@ remorender/
    - `SUPABASE_SERVICE_KEY` - Your Supabase service role key
 6. Get your Railway URL (e.g., `https://your-app.railway.app`)
 
-#### Option C: Using Railway CLI
+#### Option D: Using Railway CLI
 ```bash
 # Install Railway CLI
 npm i -g @railway/cli
