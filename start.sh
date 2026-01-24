@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Set Chromium path for Puppeteer (used by Remotion)
+export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 # Navigate to the server directory
 cd remotion-render-server
 
