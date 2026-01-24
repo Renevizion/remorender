@@ -10,7 +10,7 @@ cd remotion-render-server
 # Install dependencies if node_modules doesn't exist
 if [ ! -d "node_modules" ]; then
   echo "Installing dependencies..."
-  npm install
+  npm install || { echo "Failed to install dependencies"; exit 1; }
 fi
 
 # Start the server
