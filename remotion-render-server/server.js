@@ -5,10 +5,17 @@ const { renderMedia, selectComposition } = require('@remotion/renderer');
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Validate required environment variables
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required');
+  process.exit(1);
+}
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -28,7 +35,7 @@ app.post('/render', async (req, res) => {
     console.log('Starting render...');
     
     // Step 1: Write the Remotion component code to a temp file
-    const tempDir = `/tmp/remotion-${Date.now()}`;
+    const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
     fs.mkdirSync(tempDir, { recursive: true });
     
     const entryPoint = path.join(tempDir, 'index.tsx');
@@ -138,18 +145,75 @@ export const SimpleVideo = () => {
 };
     `;
     
-    const result = await renderVideo(simpleCode, {
-      id: 'SimpleVideo',
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      durationInFrames: duration || 90
+    // Reuse the main render logic
+    const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+    
+    const entryPoint = path.join(tempDir, 'index.tsx');
+    fs.writeFileSync(entryPoint, simpleCode);
+    
+    console.log('Bundling simple video...');
+    const bundleLocation = await bundle({
+      entryPoint,
+      webpackOverride: (config) => config
     });
     
-    res.json(result);
+    console.log('Selecting composition...');
+    const comp = await selectComposition({
+      serveUrl: bundleLocation,
+      id: 'SimpleVideo',
+      inputProps: {}
+    });
+    
+    console.log('Rendering simple video...');
+    const outputPath = path.join(tempDir, 'output.mp4');
+    
+    await renderMedia({
+      composition: comp,
+      serveUrl: bundleLocation,
+      codec: 'h264',
+      outputLocation: outputPath,
+      inputProps: {},
+      chromiumOptions: {
+        headless: true
+      },
+      onProgress: ({ progress }) => {
+        console.log(`Render progress: ${Math.round(progress * 100)}%`);
+      }
+    });
+    
+    console.log('Upload simple video...');
+    const videoBuffer = fs.readFileSync(outputPath);
+    const fileName = `${Date.now()}-SimpleVideo.mp4`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('rendered-videos')
+      .upload(fileName, videoBuffer, {
+        contentType: 'video/mp4',
+        upsert: false
+      });
+    
+    if (uploadError) throw uploadError;
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('rendered-videos')
+      .getPublicUrl(fileName);
+    
+    // Cleanup temp files
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    
+    res.json({
+      success: true,
+      videoUrl: publicUrl,
+      fileName
+    });
     
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Simple render error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
