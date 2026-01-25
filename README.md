@@ -32,6 +32,12 @@ remorender/
 - 🎨 React components for UI integration
 - 🐳 Docker support for consistent deployments
 
+## Requirements
+
+- Node.js 20.0.0 or higher
+- Supabase account (optional - server can run without it for local testing)
+- Railway or compatible hosting platform (for production deployment)
+
 ## Quick Start
 
 ### 1. Deploy Server
@@ -147,14 +153,19 @@ Content-Type: application/json
 cd remotion-render-server
 npm install
 
-# Set environment variables
+# Set environment variables (optional for local testing)
 export SUPABASE_URL=your_url
 export SUPABASE_SERVICE_KEY=your_key
 export PORT=3001
 
+# Note: Server requires Node.js 20 or higher
+# Check your version with: node --version
+
 # Start server
 npm start
 ```
+
+**Note:** If you don't set the Supabase environment variables, the server will start but videos won't be uploaded to cloud storage. This is useful for local development and testing.
 
 ### Testing
 Test with curl:

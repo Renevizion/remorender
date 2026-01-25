@@ -5,8 +5,9 @@ This guide will help you deploy the Remotion rendering server to Railway in unde
 ## Prerequisites
 
 - GitHub account (to connect Railway)
-- Supabase account (free tier works)
+- Supabase account (free tier works) - optional for local testing
 - Railway account (free tier includes $5 credit)
+- Node.js 20 or higher (for local development)
 
 ## Step 1: Setup Supabase Storage (2 minutes)
 
@@ -76,6 +77,8 @@ In your Railway project dashboard:
    - `SUPABASE_SERVICE_KEY`: Your Supabase service role key
 3. Click **Deploy** to restart with new variables
 
+**Note:** The server will now start even without these variables, but video upload functionality will be disabled. For production use, ensure both variables are set.
+
 Your server will automatically restart and be ready to use!
 
 ## Step 4: Get Your Server URL
@@ -112,8 +115,10 @@ See the `client-examples/` directory for complete integration examples.
 
 ## Troubleshooting
 
-### "Environment variables required" error
-Make sure you've added both `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in Railway's Variables tab.
+### "Environment variables required" error (Fixed)
+The server now starts without Supabase credentials, but video upload will be disabled. To enable uploads:
+1. Make sure you've added both `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in Railway's Variables tab
+2. The health check endpoint will show `"supabaseConfigured": true` when properly configured
 
 ### Server not responding
 Check the Railway logs:
