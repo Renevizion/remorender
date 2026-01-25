@@ -25,7 +25,7 @@ const renderLimiter = rateLimit({
 });
 
 // Validate environment variables and initialize Supabase if available
-const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY;
+const hasSupabaseConfig = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
 let supabase = null;
 
 if (hasSupabaseConfig) {
