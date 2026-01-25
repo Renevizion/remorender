@@ -1,11 +1,14 @@
 # Use official Node.js runtime as base image
 FROM node:20-slim
 
-# Install dependencies for Remotion
+# Install Chromium and all required dependencies for headless browser
 RUN apt-get update && apt-get install -y \
     chromium \
     ffmpeg \
+    libglib2.0-0 \
+    libgobject-2.0-0 \
     libnss3 \
+    libnspr4 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
     libcups2 \
@@ -19,11 +22,12 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libpango-1.0-0 \
     libcairo2 \
-    libglib2.0-0 \
+    libatspi2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Chromium path for Puppeteer
+# Set the Chromium path for Puppeteer/Remotion
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV CHROME_PATH=/usr/bin/chromium
 
 # Create app directory
 WORKDIR /app
@@ -38,7 +42,7 @@ RUN npm install --production
 COPY . .
 
 # Expose port
-EXPOSE 3001
+EXPOSE 8080
 
 # Start the server
 CMD ["npm", "start"]
