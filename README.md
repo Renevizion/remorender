@@ -2,23 +2,40 @@
 
 A complete solution for rendering Remotion videos on Railway/Railpack with client integration examples. This project includes a Node.js/Express server that renders Remotion compositions and uploads them to Supabase storage, along with TypeScript/React client code for easy integration.
 
+## 🔒 Secure Webhook Approach (Recommended)
+
+**NEW**: For Lovable Cloud users, we now support a secure webhook approach where Railway never needs your Supabase credentials! See [WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md) for the complete guide.
+
+**Benefits:**
+- ✅ No Supabase credentials in Railway
+- ✅ Service keys stay in secure edge function environment  
+- ✅ Scalable and production-ready
+- ✅ Real-time status updates via Supabase subscriptions
+
 ## Project Structure
 
 ```
 remorender/
 ├── remotion-render-server/    # Express server for video rendering
 │   ├── package.json            # Server dependencies
-│   ├── server.js               # Main Express server
+│   ├── server.js               # Main Express server (with webhook support)
 │   ├── Dockerfile              # Docker configuration for Railway
 │   ├── .gitignore              # Git ignore patterns
 │   └── remotion/               # Remotion compositions directory
 │       └── README.md           # Composition examples
+├── supabase/                   # Supabase edge functions
+│   └── functions/
+│       ├── render-video/       # Edge function to initiate renders
+│       └── render-webhook/     # Edge function to receive callbacks
 ├── client-examples/            # Client integration examples
 │   ├── config.ts               # Server URL configuration
-│   ├── renderService.ts        # Core render API service
+│   ├── renderService.ts        # Direct API service (legacy)
+│   ├── edgeFunctionService.ts  # Edge function service (recommended)
 │   ├── videoManager.ts         # Supabase integration
-│   ├── RenderButton.tsx        # React UI component
+│   ├── RenderButton.tsx        # React UI component (legacy)
+│   ├── EdgeFunctionRenderButton.tsx  # React component (webhook approach)
 │   └── README.md               # Client usage guide
+├── WEBHOOK_SETUP.md            # Webhook approach setup guide
 └── README.md                   # This file
 ```
 
@@ -26,11 +43,13 @@ remorender/
 
 - 🎥 Render custom Remotion compositions on-demand
 - ☁️ Automatic upload to Supabase storage
+- 🔒 **NEW**: Secure webhook approach for Lovable Cloud
 - 🚀 Deploy to Railway or Railpack with one click
 - 🔄 Health check endpoint for monitoring
 - 📦 Simple API for client integration
 - 🎨 React components for UI integration
 - 🐳 Docker support for consistent deployments
+- 📡 Real-time status updates via Supabase subscriptions
 
 ## Requirements
 
@@ -39,6 +58,18 @@ remorender/
 - Railway or compatible hosting platform (for production deployment)
 
 ## Quick Start
+
+### Option 1: Webhook Approach (Recommended for Lovable Cloud)
+
+See the complete guide: [WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md)
+
+**Quick summary:**
+1. Deploy Supabase edge functions (`render-video` and `render-webhook`)
+2. Deploy Railway server (no Supabase credentials needed!)
+3. Set `RAILWAY_RENDER_URL` in Supabase secrets
+4. Use `edgeFunctionService.ts` in your client code
+
+### Option 2: Direct API Approach (Legacy)
 
 ### 1. Deploy Server
 

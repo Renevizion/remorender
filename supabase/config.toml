@@ -1,0 +1,8 @@
+[project]
+# Supabase project configuration
+
+[functions.render-video]
+verify_jwt = false  # Set to true if you want to require authentication
+
+[functions.render-webhook]
+verify_jwt = false  # Railway needs to call this without auth

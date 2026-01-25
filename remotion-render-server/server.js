@@ -40,6 +40,147 @@ if (hasSupabaseConfig) {
   console.warn('⚠️  Videos will be rendered but not uploaded to cloud storage.');
 }
 
+// Async render processing with webhook callback
+async function processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId) {
+  let tempDir = null;
+  
+  try {
+    console.log(`[${jobId}] Processing render asynchronously...`);
+    
+    // Step 1: Write the Remotion component code to a temp file
+    tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+    
+    const entryPoint = path.join(tempDir, 'index.tsx');
+    fs.writeFileSync(entryPoint, code);
+    
+    // Step 2: Bundle the Remotion project
+    console.log(`[${jobId}] Bundling...`);
+    const bundleLocation = await bundle({
+      entryPoint,
+      webpackOverride: (config) => config
+    });
+    
+    // Step 3: Select composition
+    console.log(`[${jobId}] Selecting composition...`);
+    const comp = await selectComposition({
+      serveUrl: bundleLocation,
+      id: composition.id,
+      inputProps: inputProps || {}
+    });
+    
+    // Step 4: Render video
+    console.log(`[${jobId}] Rendering video...`);
+    const outputPath = path.join(tempDir, 'output.mp4');
+    
+    await renderMedia({
+      composition: comp,
+      serveUrl: bundleLocation,
+      codec: 'h264',
+      outputLocation: outputPath,
+      inputProps: inputProps || {},
+      chromiumOptions: {
+        headless: true
+      },
+      onProgress: ({ progress }) => {
+        console.log(`[${jobId}] Render progress: ${Math.round(progress * 100)}%`);
+      }
+    });
+    
+    console.log(`[${jobId}] Render complete, uploading...`);
+    
+    // Step 5: Upload to Supabase (if configured)
+    let publicUrl = null;
+    let fileName = null;
+    
+    if (supabase) {
+      const videoBuffer = fs.readFileSync(outputPath);
+      fileName = `${Date.now()}-${composition.id}.mp4`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('rendered-videos')
+        .upload(fileName, videoBuffer, {
+          contentType: 'video/mp4',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl: url } } = supabase.storage
+        .from('rendered-videos')
+        .getPublicUrl(fileName);
+      
+      publicUrl = url;
+      console.log(`[${jobId}] Upload complete:`, publicUrl);
+    } else {
+      console.warn(`[${jobId}] Supabase not configured - video rendered but not uploaded`);
+      publicUrl = 'local-render';
+      fileName = `rendered-${composition.id}.mp4`;
+    }
+    
+    // Cleanup temp files
+    if (tempDir) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+    
+    // Call webhook with success
+    console.log(`[${jobId}] Calling webhook:`, webhookUrl);
+    const webhookResponse = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        jobId,
+        planId,
+        status: 'completed',
+        videoUrl: publicUrl,
+        fileName
+      })
+    });
+    
+    if (!webhookResponse.ok) {
+      console.error(`[${jobId}] Webhook call failed:`, webhookResponse.statusText);
+    } else {
+      console.log(`[${jobId}] Webhook called successfully`);
+    }
+    
+  } catch (error) {
+    console.error(`[${jobId}] Render error:`, error);
+    
+    // Cleanup temp files on error
+    if (tempDir) {
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error(`[${jobId}] Cleanup error:`, cleanupError);
+      }
+    }
+    
+    // Call webhook with failure
+    if (webhookUrl) {
+      try {
+        console.log(`[${jobId}] Calling webhook with error...`);
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            jobId,
+            planId,
+            status: 'failed',
+            error: error.message
+          })
+        });
+      } catch (webhookError) {
+        console.error(`[${jobId}] Failed to call webhook:`, webhookError);
+      }
+    }
+  }
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
@@ -52,10 +193,35 @@ app.get('/health', (req, res) => {
 // Main render endpoint
 app.post('/render', renderLimiter, async (req, res) => {
   try {
-    const { code, composition, inputProps } = req.body;
+    const { code, composition, inputProps, webhookUrl, jobId, planId } = req.body;
     
     console.log('Starting render...');
+    console.log('Webhook URL:', webhookUrl);
+    console.log('Job ID:', jobId);
+    console.log('Plan ID:', planId);
     
+    // If webhook is provided, respond immediately and process async
+    const useWebhook = !!webhookUrl;
+    
+    if (useWebhook) {
+      // Respond immediately to acknowledge receipt
+      res.json({
+        success: true,
+        message: 'Render job accepted',
+        jobId,
+        planId
+      });
+      
+      // Process render asynchronously (fire-and-forget)
+      // Errors are handled within the function and sent to webhook
+      processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId)
+        .catch(error => {
+          console.error(`[${jobId}] Unhandled error in processRenderWithWebhook:`, error);
+        });
+      return;
+    }
+    
+    // Otherwise, process synchronously (legacy mode)
     // Step 1: Write the Remotion component code to a temp file
     const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
     fs.mkdirSync(tempDir, { recursive: true });
