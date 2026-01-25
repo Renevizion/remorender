@@ -212,8 +212,12 @@ app.post('/render', renderLimiter, async (req, res) => {
         planId
       });
       
-      // Process render asynchronously
-      processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId);
+      // Process render asynchronously (fire-and-forget)
+      // Errors are handled within the function and sent to webhook
+      processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId)
+        .catch(error => {
+          console.error(`[${jobId}] Unhandled error in processRenderWithWebhook:`, error);
+        });
       return;
     }
     
