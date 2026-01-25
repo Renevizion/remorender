@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Remotion Rendering Server for deployment platforms",
   "scripts": {
-    "start": "cd remotion-render-server && npm start",
+    "start": "cd remotion-render-server && npm install --production && npm start",
     "setup": "cd remotion-render-server && npm install"
   },
   "engines": {
