@@ -124,15 +124,13 @@ app.post('/render', renderLimiter, async (req, res) => {
       console.log('Upload complete:', publicUrl);
     } else {
       console.warn('Supabase not configured - video rendered but not uploaded');
-      // Return the local path (for development/testing)
-      publicUrl = outputPath;
-      fileName = path.basename(outputPath);
+      // Return a message instead of file path for security
+      publicUrl = 'local-render';
+      fileName = `rendered-${composition.id}.mp4`;
     }
     
-    // Cleanup temp files (only if uploaded to cloud)
-    if (supabase) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    // Cleanup temp files
+    fs.rmSync(tempDir, { recursive: true, force: true });
     
     res.json({
       success: true,
@@ -239,15 +237,15 @@ export const SimpleVideo = () => {
         .getPublicUrl(fileName);
       
       publicUrl = url;
-      
-      // Cleanup temp files
-      fs.rmSync(tempDir, { recursive: true, force: true });
     } else {
       console.warn('Supabase not configured - video rendered but not uploaded');
-      // Return the local path (for development/testing)
-      publicUrl = outputPath;
-      fileName = path.basename(outputPath);
+      // Return a message instead of file path for security
+      publicUrl = 'local-render';
+      fileName = 'rendered-SimpleVideo.mp4';
     }
+    
+    // Cleanup temp files
+    fs.rmSync(tempDir, { recursive: true, force: true });
     
     res.json({
       success: true,
