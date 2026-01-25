@@ -237,7 +237,13 @@ Client App receives video URL
 ## Troubleshooting
 
 ### Chromium Issues
-Ensure Dockerfile includes Chromium dependencies
+The project includes all required Chrome/Chromium dependencies in both `Aptfile` (for Railway/Nixpacks) and `Dockerfile` (for Docker deployments).
+
+If you encounter browser launch errors like "libgobject-2.0.so.0 not found", ensure your deployment includes:
+- chromium, chromium-driver, ffmpeg
+- Chrome rendering libraries: libnss3, libatk1.0-0, libatk-bridge2.0-0, libcups2, libdrm2, libxkbcommon0, libxcomposite1, libxdamage1, libxfixes3, libxrandr2, libgbm1, libasound2, libpango-1.0-0, libcairo2, libglib2.0-0
+
+These are already configured in the repository's `Aptfile` and `remotion-render-server/Dockerfile`.
 
 ### Memory Issues
 Increase Railway memory allocation in project settings
