@@ -24,20 +24,29 @@ const renderLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Validate required environment variables
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-  console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required');
-  process.exit(1);
-}
+// Validate environment variables and initialize Supabase if available
+const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY;
+let supabase = null;
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+if (hasSupabaseConfig) {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY
+  );
+  console.log('✓ Supabase storage configured');
+} else {
+  console.warn('⚠️  Warning: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are not set.');
+  console.warn('⚠️  The server will start, but video upload functionality will be disabled.');
+  console.warn('⚠️  Videos will be rendered but not uploaded to cloud storage.');
+}
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'remotion-render' });
+  res.json({ 
+    status: 'ok', 
+    service: 'remotion-render',
+    supabaseConfigured: hasSupabaseConfig
+  });
 });
 
 // Main render endpoint
@@ -89,28 +98,41 @@ app.post('/render', renderLimiter, async (req, res) => {
     
     console.log('Render complete, uploading...');
     
-    // Step 5: Upload to Supabase
-    const videoBuffer = fs.readFileSync(outputPath);
-    const fileName = `${Date.now()}-${composition.id}.mp4`;
+    // Step 5: Upload to Supabase (if configured)
+    let publicUrl = null;
+    let fileName = null;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('rendered-videos')
-      .upload(fileName, videoBuffer, {
-        contentType: 'video/mp4',
-        upsert: false
-      });
+    if (supabase) {
+      const videoBuffer = fs.readFileSync(outputPath);
+      fileName = `${Date.now()}-${composition.id}.mp4`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('rendered-videos')
+        .upload(fileName, videoBuffer, {
+          contentType: 'video/mp4',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl: url } } = supabase.storage
+        .from('rendered-videos')
+        .getPublicUrl(fileName);
+      
+      publicUrl = url;
+      console.log('Upload complete:', publicUrl);
+    } else {
+      console.warn('Supabase not configured - video rendered but not uploaded');
+      // Return the local path (for development/testing)
+      publicUrl = outputPath;
+      fileName = path.basename(outputPath);
+    }
     
-    if (uploadError) throw uploadError;
-    
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('rendered-videos')
-      .getPublicUrl(fileName);
-    
-    // Cleanup temp files
-    fs.rmSync(tempDir, { recursive: true, force: true });
-    
-    console.log('Upload complete:', publicUrl);
+    // Cleanup temp files (only if uploaded to cloud)
+    if (supabase) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
     
     res.json({
       success: true,
@@ -196,24 +218,36 @@ export const SimpleVideo = () => {
     });
     
     console.log('Upload simple video...');
-    const videoBuffer = fs.readFileSync(outputPath);
-    const fileName = `${Date.now()}-SimpleVideo.mp4`;
+    let publicUrl = null;
+    let fileName = null;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('rendered-videos')
-      .upload(fileName, videoBuffer, {
-        contentType: 'video/mp4',
-        upsert: false
-      });
-    
-    if (uploadError) throw uploadError;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('rendered-videos')
-      .getPublicUrl(fileName);
-    
-    // Cleanup temp files
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    if (supabase) {
+      const videoBuffer = fs.readFileSync(outputPath);
+      fileName = `${Date.now()}-SimpleVideo.mp4`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('rendered-videos')
+        .upload(fileName, videoBuffer, {
+          contentType: 'video/mp4',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl: url } } = supabase.storage
+        .from('rendered-videos')
+        .getPublicUrl(fileName);
+      
+      publicUrl = url;
+      
+      // Cleanup temp files
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } else {
+      console.warn('Supabase not configured - video rendered but not uploaded');
+      // Return the local path (for development/testing)
+      publicUrl = outputPath;
+      fileName = path.basename(outputPath);
+    }
     
     res.json({
       success: true,

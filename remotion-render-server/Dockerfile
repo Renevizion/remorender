@@ -1,5 +1,5 @@
 # Use official Node.js runtime as base image
-FROM node:18-slim
+FROM node:20-slim
 
 # Install dependencies for Remotion
 RUN apt-get update && apt-get install -y \
