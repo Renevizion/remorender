@@ -70,6 +70,42 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Fetch the plan to get resolution settings
+    const { data: planData, error: planError } = await supabase
+      .from('video_plans')
+      .select('plan')
+      .eq('id', renderRequest.planId)
+      .single()
+
+    if (planError || !planData) {
+      console.error('Failed to fetch video plan:', planError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to fetch video plan. Plan may not exist.' 
+        }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Extract resolution from plan (with fallback to composition values)
+    const planResolution = planData.plan?.resolution
+    const width = planResolution?.width || renderRequest.composition.width
+    const height = planResolution?.height || renderRequest.composition.height
+    const aspectRatio = width / height
+
+    console.log(`Using resolution: ${width}x${height} (aspect ratio: ${aspectRatio.toFixed(2)})`)
+
+    // Update composition with plan resolution
+    const compositionWithResolution = {
+      ...renderRequest.composition,
+      width,
+      height,
+    }
+
     // Update status to rendering
     await supabase
       .from('video_plans')
@@ -88,9 +124,10 @@ serve(async (req) => {
       jobId,
       planId: renderRequest.planId,
       code: renderRequest.code,
-      composition: renderRequest.composition,
+      composition: compositionWithResolution, // Use updated composition with plan.resolution
       inputProps: renderRequest.inputProps || {},
       webhookUrl, // Railway will call this URL when done
+      aspectRatio, // Include aspect ratio for validation/logging
     }
 
     console.log('Sending render job to Railway:', jobId)
