@@ -9,6 +9,10 @@ const path = require('path');
 const os = require('os');
 
 const app = express();
+
+// Trust proxy for Railway deployment (fixes rate limit warnings)
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 

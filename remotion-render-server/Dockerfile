@@ -23,6 +23,10 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     libatspi2.0-0 \
+    fonts-liberation \
+    libappindicator3-1 \
+    xdg-utils \
+    --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the Chromium path for Puppeteer/Remotion
