@@ -15,8 +15,9 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Webpack override function to ensure React is properly resolved
+// Webpack override function to ensure React and Remotion packages are properly resolved
 // This fixes animation rendering issues where spring/interpolate work in Studio but not in renders
+// and ensures @remotion packages can be resolved from user code in temp directories
 function getWebpackOverride(config) {
   return {
     ...config,
@@ -26,7 +27,13 @@ function getWebpackOverride(config) {
         ...config.resolve?.alias,
         'react': require.resolve('react'),
         'react-dom': require.resolve('react-dom'),
-      }
+      },
+      modules: [
+        // Add the server's node_modules directory so packages can be resolved
+        // even when bundling code from a temp directory
+        path.join(__dirname, 'node_modules'),
+        ...(config.resolve?.modules || ['node_modules'])
+      ]
     }
   };
 }
