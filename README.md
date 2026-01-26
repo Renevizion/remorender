@@ -239,6 +239,8 @@ Client App receives video URL
 ### Chromium Issues
 The project includes all required Chrome/Chromium dependencies in both `Aptfile` (for Railway/Nixpacks) and `Dockerfile` (for Docker deployments).
 
+**Note:** If Railway shows "cached" in build logs instead of installing packages fresh, clear the build cache in Railway settings or trigger a fresh deployment.
+
 If you encounter browser launch errors like "libgobject-2.0.so.0 not found", ensure your deployment includes:
 - chromium, chromium-driver, ffmpeg
 - Chrome rendering libraries: libnss3, libatk1.0-0, libatk-bridge2.0-0, libcups2, libdrm2, libxkbcommon0, libxcomposite1, libxdamage1, libxfixes3, libxrandr2, libgbm1, libasound2, libpango-1.0-0, libcairo2, libglib2.0-0
