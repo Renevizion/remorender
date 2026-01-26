@@ -70,6 +70,96 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Fetch the plan to get resolution settings
+    const { data: planData, error: planError } = await supabase
+      .from('video_plans')
+      .select('plan')
+      .eq('id', renderRequest.planId)
+      .single()
+
+    if (planError || !planData) {
+      console.error('Failed to fetch video plan:', planError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to fetch video plan. Plan may not exist.' 
+        }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Default resolution (fallback)
+    const DEFAULT_WIDTH = 1920
+    const DEFAULT_HEIGHT = 1080
+
+    // Extract resolution from plan
+    // Use nullish coalescing to only fallback on null/undefined, not on 0 or other falsy values
+    const planResolution = planData.plan?.resolution
+    
+    // Determine resolution source based on plan availability
+    // If plan has partial resolution (only width or only height), use composition or defaults
+    let width: number
+    let height: number
+    
+    if (
+      planResolution?.width !== null && 
+      planResolution?.width !== undefined && 
+      planResolution?.height !== null && 
+      planResolution?.height !== undefined
+    ) {
+      // Both dimensions available in plan - use them
+      width = planResolution.width
+      height = planResolution.height
+    } else if (
+      renderRequest.composition.width !== null && 
+      renderRequest.composition.width !== undefined && 
+      renderRequest.composition.height !== null && 
+      renderRequest.composition.height !== undefined
+    ) {
+      // Plan resolution incomplete, use composition dimensions
+      width = renderRequest.composition.width
+      height = renderRequest.composition.height
+    } else {
+      // Fall back to defaults
+      width = DEFAULT_WIDTH
+      height = DEFAULT_HEIGHT
+    }
+    
+    // Validate dimensions before calculating aspect ratio
+    if (
+      typeof width !== 'number' || 
+      typeof height !== 'number' ||
+      !isFinite(width) || 
+      !isFinite(height) ||
+      width <= 0 || 
+      height <= 0
+    ) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid resolution: width and height must be positive finite numbers' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+    
+    const aspectRatio = width / height
+
+    console.log(`Using resolution: ${width}x${height} (aspect ratio: ${aspectRatio.toFixed(2)})`)
+
+    // Update composition with plan resolution
+    const compositionWithResolution = {
+      ...renderRequest.composition,
+      width,
+      height,
+    }
+
     // Update status to rendering
     await supabase
       .from('video_plans')
@@ -88,9 +178,10 @@ serve(async (req) => {
       jobId,
       planId: renderRequest.planId,
       code: renderRequest.code,
-      composition: renderRequest.composition,
+      composition: compositionWithResolution, // Use updated composition with plan.resolution
       inputProps: renderRequest.inputProps || {},
       webhookUrl, // Railway will call this URL when done
+      aspectRatio, // Include aspect ratio for validation/logging
     }
 
     console.log('Sending render job to Railway:', jobId)
