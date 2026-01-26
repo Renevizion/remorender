@@ -3,7 +3,6 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { bundle } = require('@remotion/bundler');
 const { renderMedia, selectComposition } = require('@remotion/renderer');
-const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -28,20 +27,64 @@ const renderLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Validate environment variables and initialize Supabase if available
-const hasSupabaseConfig = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
-let supabase = null;
-
-if (hasSupabaseConfig) {
-  supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
-  );
-  console.log('✓ Supabase storage configured');
+// Validate environment variables for upload endpoint
+if (!process.env.UPLOAD_ENDPOINT_URL) {
+  console.warn('⚠️  Warning: UPLOAD_ENDPOINT_URL environment variable is not set.');
+  console.warn('⚠️  The server will start, but video upload functionality will not work.');
+  console.warn('⚠️  Please set UPLOAD_ENDPOINT_URL to your Supabase upload-video function URL.');
 } else {
-  console.warn('⚠️  Warning: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are not set.');
-  console.warn('⚠️  The server will start, but video upload functionality will be disabled.');
-  console.warn('⚠️  Videos will be rendered but not uploaded to cloud storage.');
+  console.log('✓ Upload endpoint configured:', process.env.UPLOAD_ENDPOINT_URL);
+}
+
+// Shared function to upload video via edge function
+// Note: This uses base64 encoding which adds ~33% overhead to file size.
+// The edge function approach prioritizes security (no credentials in Railway)
+// over performance. For very large videos (>50MB), consider implementing
+// chunked uploads or direct upload with signed URLs if performance is critical.
+async function uploadVideoViaEdgeFunction(videoBuffer, planId, jobId = null) {
+  const videoBase64 = videoBuffer.toString('base64');
+  
+  const logPrefix = jobId ? `[${jobId}]` : '';
+  if (jobId) {
+    console.log(`${logPrefix} Video encoded, size: ${videoBase64.length} chars`);
+  }
+  
+  const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL;
+  
+  if (!uploadEndpoint) {
+    throw new Error('UPLOAD_ENDPOINT_URL environment variable is not set');
+  }
+  
+  if (jobId) {
+    console.log(`${logPrefix} Uploading to:`, uploadEndpoint);
+  }
+  
+  const uploadResponse = await fetch(uploadEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      planId: planId,
+      videoBase64: videoBase64
+    })
+  });
+  
+  if (!uploadResponse.ok) {
+    const errorText = await uploadResponse.text();
+    throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
+  }
+  
+  const uploadResult = await uploadResponse.json();
+  
+  if (jobId) {
+    console.log(`${logPrefix} Upload complete:`, uploadResult.videoUrl);
+  }
+  
+  return {
+    videoUrl: uploadResult.videoUrl,
+    fileName: uploadResult.fileName
+  };
 }
 
 // Async render processing with webhook callback
@@ -93,35 +136,9 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     
     console.log(`[${jobId}] Render complete, uploading...`);
     
-    // Step 5: Upload to Supabase (if configured)
-    let publicUrl = null;
-    let fileName = null;
-    
-    if (supabase) {
-      const videoBuffer = fs.readFileSync(outputPath);
-      fileName = `${Date.now()}-${composition.id}.mp4`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('rendered-videos')
-        .upload(fileName, videoBuffer, {
-          contentType: 'video/mp4',
-          upsert: false
-        });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data: { publicUrl: url } } = supabase.storage
-        .from('rendered-videos')
-        .getPublicUrl(fileName);
-      
-      publicUrl = url;
-      console.log(`[${jobId}] Upload complete:`, publicUrl);
-    } else {
-      console.warn(`[${jobId}] Supabase not configured - video rendered but not uploaded`);
-      publicUrl = 'local-render';
-      fileName = `rendered-${composition.id}.mp4`;
-    }
+    // Step 5: Upload via edge function (no service key needed!)
+    const videoBuffer = fs.readFileSync(outputPath);
+    const { videoUrl: publicUrl, fileName } = await uploadVideoViaEdgeFunction(videoBuffer, planId, jobId);
     
     // Cleanup temp files
     if (tempDir) {
@@ -190,7 +207,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'remotion-render',
-    supabaseConfigured: hasSupabaseConfig
+    uploadEndpointConfigured: !!process.env.UPLOAD_ENDPOINT_URL
   });
 });
 
@@ -268,36 +285,14 @@ app.post('/render', renderLimiter, async (req, res) => {
     
     console.log('Render complete, uploading...');
     
-    // Step 5: Upload to Supabase (if configured)
-    let publicUrl = null;
-    let fileName = null;
+    // Step 5: Upload via edge function
+    const videoBuffer = fs.readFileSync(outputPath);
+    const { videoUrl: publicUrl, fileName } = await uploadVideoViaEdgeFunction(
+      videoBuffer, 
+      planId || `sync-${Date.now()}`
+    );
     
-    if (supabase) {
-      const videoBuffer = fs.readFileSync(outputPath);
-      fileName = `${Date.now()}-${composition.id}.mp4`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('rendered-videos')
-        .upload(fileName, videoBuffer, {
-          contentType: 'video/mp4',
-          upsert: false
-        });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data: { publicUrl: url } } = supabase.storage
-        .from('rendered-videos')
-        .getPublicUrl(fileName);
-      
-      publicUrl = url;
-      console.log('Upload complete:', publicUrl);
-    } else {
-      console.warn('Supabase not configured - video rendered but not uploaded');
-      // Return a message instead of file path for security
-      publicUrl = 'local-render';
-      fileName = `rendered-${composition.id}.mp4`;
-    }
+    console.log('Upload complete:', publicUrl);
     
     // Cleanup temp files
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -386,33 +381,13 @@ export const SimpleVideo = () => {
     });
     
     console.log('Upload simple video...');
-    let publicUrl = null;
-    let fileName = null;
     
-    if (supabase) {
-      const videoBuffer = fs.readFileSync(outputPath);
-      fileName = `${Date.now()}-SimpleVideo.mp4`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('rendered-videos')
-        .upload(fileName, videoBuffer, {
-          contentType: 'video/mp4',
-          upsert: false
-        });
-      
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl: url } } = supabase.storage
-        .from('rendered-videos')
-        .getPublicUrl(fileName);
-      
-      publicUrl = url;
-    } else {
-      console.warn('Supabase not configured - video rendered but not uploaded');
-      // Return a message instead of file path for security
-      publicUrl = 'local-render';
-      fileName = 'rendered-SimpleVideo.mp4';
-    }
+    // Upload via edge function
+    const videoBuffer = fs.readFileSync(outputPath);
+    const { videoUrl: publicUrl, fileName } = await uploadVideoViaEdgeFunction(
+      videoBuffer, 
+      `simple-${Date.now()}`
+    );
     
     // Cleanup temp files
     fs.rmSync(tempDir, { recursive: true, force: true });
