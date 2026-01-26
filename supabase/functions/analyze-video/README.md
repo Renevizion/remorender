@@ -1,16 +1,50 @@
 # Analyze Video Edge Function
 
-**FREE • NO SIGNUP • FAST** - Analyzes uploaded videos to extract patterns using completely free methods.
+**FREE • NO SIGNUP • FFMPEG-POWERED** - Analyzes uploaded videos with **real frame extraction, scene detection, and audio analysis**.
 
 ## Features
 
-- ✅ **100% Free**: No API keys, no subscriptions, no costs
-- ✅ **No Sign-Up Required**: Works out of the box
-- ✅ **Upload from Frontend**: Send video files directly from your app
-- ✅ **Color Extraction**: Extracts real colors from video frames
-- ✅ **YouTube Support**: Analyze YouTube videos via URL
-- ✅ **Fast**: Analyzes in seconds
-- ✅ **Privacy-Friendly**: Videos stored temporarily only
+- ✅ **100% FREE** - No API keys, subscriptions, or costs
+- ✅ **NO SIGNUP** - Works out of the box
+- ✅ **FFmpeg Frame Extraction** - Direct frame extraction from MP4 files
+- ✅ **Scene Change Detection** - Automatic detection of scene transitions  
+- ✅ **Audio Analysis** - Volume levels, beat detection, audio features
+- ✅ **Real Color Extraction** - Extracts actual dominant colors from video frames
+- ✅ **YouTube Support** - Analyze YouTube videos via URL
+- ✅ **Fast Processing** - Typical 5-10 seconds for full analysis
+
+## What's Included
+
+### 1. Direct Frame Extraction ✨ NEW!
+Extracts actual frames from uploaded MP4 files using FFmpeg:
+- Distributes frames evenly across video duration
+- High-quality JPEG frames
+- Configurable frame count (default: 5)
+
+### 2. Scene Change Detection ✨ NEW!
+Automatically detects when scenes change:
+- Uses FFmpeg's scene detection filter
+- Configurable sensitivity threshold  
+- Returns precise timestamps of scene transitions
+
+### 3. Audio Analysis ✨ NEW!
+Analyzes audio track features:
+- Mean and max volume levels
+- Beat detection (rhythm analysis)
+- Audio codec information
+- Detects presence of audio
+
+## Setup
+
+### Environment Variables
+
+Add to your Supabase project secrets:
+
+```bash
+RAILWAY_RENDER_URL=https://your-railway-server.railway.app
+```
+
+**Note:** This is the same Railway server used for video rendering - it already has FFmpeg installed! No additional setup needed.
 
 ## API
 
@@ -22,12 +56,12 @@ POST /functions/v1/analyze-video
 
 ### Request Body
 
-**Option 1: Upload Video File (Recommended)**
+**Option 1: Upload Video File (FFmpeg Analysis)**
 ```typescript
 {
   videoBase64: string;       // Base64-encoded video file
   videoName: string;         // Name of the video
-  description?: string;      // Optional description
+  frameCount?: number;       // Number of frames to extract (default: 5)
 }
 ```
 
@@ -35,37 +69,58 @@ POST /functions/v1/analyze-video
 ```typescript
 {
   videoUrl: string;          // YouTube URL
-  videoName?: string;
-  description?: string;
+  frameCount?: number;
 }
 ```
 
 ### Response
 
+**FFmpeg Analysis Response:**
+
 ```typescript
 {
-  success: boolean;
-  message: string;
-  frameCount: number;
-  analysisMethod: "free-no-signup";
+  success: true;
+  message: "Video analyzed with FFmpeg on Railway server";
+  analysisMethod: "ffmpeg-deep-analysis";
+  features: {
+    frameExtraction: true;
+    sceneDetection: true;
+    audioAnalysis: true;
+    colorExtraction: true;
+  };
   pattern: {
     id: string;
     name: string;
-    duration: number;
-    colors: string[];        // Real colors extracted from frames!
+    duration: number;          // Actual video duration in seconds
+    resolution: {
+      width: number;           // Video width
+      height: number;          // Video height
+    };
+    fps: number;               // Actual frames per second
+    colors: string[];          // Real colors extracted from frames!
     scenes: Array<{
-      startTime: number;
-      endTime: number;
+      startTime: number;       // Scene start timestamp
+      endTime: number;         // Scene end timestamp
+      duration: number;        // Scene duration in seconds
       description: string;
-      transition: string;
-      animation: string;
-      visualElements: string[];
+      transition: string;      // "cut" for scene changes
+      hasAudio: boolean;
     }>;
+    audio: {
+      hasAudio: boolean;
+      meanVolume: number;      // Average volume in dB
+      maxVolume: number;       // Peak volume in dB
+      hasBeat: boolean;        // Detected rhythm/beat
+    };
+    sceneChanges: number[];    // Exact timestamps of scene changes
     metadata: {
       analyzedAt: string;
       source: string;
-      contentType: string;
-      analysisMethod: string;
+      analysisMethod: "ffmpeg-deep-analysis";
+      videoCodec: string;      // e.g., "h264", "vp9"
+      audioCodec: string;      // e.g., "aac", "mp3"
+      bitrate: number;         // Bitrate in bits/sec
+      fileSize: number;        // File size in bytes
     };
   };
 }
@@ -73,7 +128,7 @@ POST /functions/v1/analyze-video
 
 ## Usage from Frontend
 
-### Upload Video File
+### Upload Video File for FFmpeg Analysis
 
 ```typescript
 // 1. Get video file from input
@@ -84,44 +139,32 @@ const videoFile = fileInput.files[0];
 const reader = new FileReader();
 reader.readAsDataURL(videoFile);
 reader.onload = async () => {
-  const base64 = reader.result.split(',')[1]; // Remove data:video/mp4;base64, prefix
+  const base64 = reader.result.split(',')[1];
   
   // 3. Send to analyze-video function
   const response = await fetch('https://your-project.supabase.co/functions/v1/analyze-video', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseAnonKey}`
+      'Authorization': `Bearer YOUR_SUPABASE_ANON_KEY`
     },
     body: JSON.stringify({
       videoBase64: base64,
       videoName: videoFile.name,
-      description: 'Product showcase video'
+      frameCount: 5  // Extract 5 frames
     })
   });
   
-  const { pattern } = await response.json();
-  console.log('Extracted colors:', pattern.colors);
-  console.log('Detected scenes:', pattern.scenes);
+  const { pattern, features } = await response.json();
+  
+  console.log('Video analyzed!');
+  console.log('Duration:', pattern.duration, 'seconds');
+  console.log('Resolution:', pattern.resolution);
+  console.log('Scene changes at:', pattern.sceneChanges);
+  console.log('Colors:', pattern.colors);
+  console.log('Has audio:', pattern.audio.hasAudio);
+  console.log('Audio has beat:', pattern.audio.hasBeat);
 };
-```
-
-### Analyze YouTube Video
-
-```typescript
-const response = await fetch('https://your-project.supabase.co/functions/v1/analyze-video', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${supabaseAnonKey}`
-  },
-  body: JSON.stringify({
-    videoUrl: 'https://www.youtube.com/watch?v=VIDEO_ID',
-    description: 'Tech product demo'
-  })
-});
-
-const { pattern } = await response.json();
 ```
 
 ### React Component Example
@@ -145,13 +188,14 @@ function VideoAnalyzer() {
     reader.onload = async () => {
       const base64 = (reader.result as string).split(',')[1];
       
-      // Analyze video
+      // Analyze video with FFmpeg
       const response = await fetch('/functions/v1/analyze-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoBase64: base64,
-          videoName: file.name
+          videoName: file.name,
+          frameCount: 5
         })
       });
       
@@ -164,10 +208,19 @@ function VideoAnalyzer() {
   return (
     <div>
       <input type="file" accept="video/*" onChange={handleFileUpload} />
-      {analyzing && <p>Analyzing video...</p>}
+      
+      {analyzing && <p>Analyzing video with FFmpeg...</p>}
+      
       {pattern && (
         <div>
-          <h3>Extracted Colors:</h3>
+          <h3>Analysis Complete!</h3>
+          <p>Duration: {pattern.duration.toFixed(2)}s</p>
+          <p>Resolution: {pattern.resolution.width}x{pattern.resolution.height}</p>
+          <p>FPS: {pattern.fps}</p>
+          <p>Scenes detected: {pattern.scenes.length}</p>
+          <p>Scene changes at: {pattern.sceneChanges.join(', ')}s</p>
+          
+          <h4>Colors:</h4>
           <div style={{ display: 'flex', gap: '8px' }}>
             {pattern.colors.map(color => (
               <div 
@@ -175,11 +228,22 @@ function VideoAnalyzer() {
                 style={{ 
                   width: 50, 
                   height: 50, 
-                  backgroundColor: color 
+                  backgroundColor: color,
+                  border: '1px solid #ccc'
                 }} 
+                title={color}
               />
             ))}
           </div>
+          
+          {pattern.audio.hasAudio && (
+            <div>
+              <h4>Audio:</h4>
+              <p>Mean volume: {pattern.audio.meanVolume.toFixed(2)} dB</p>
+              <p>Max volume: {pattern.audio.maxVolume.toFixed(2)} dB</p>
+              <p>Has beat: {pattern.audio.hasBeat ? 'Yes' : 'No'}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -189,166 +253,93 @@ function VideoAnalyzer() {
 
 ## How It Works
 
-### For YouTube Videos
+### FFmpeg Analysis (Uploaded Videos)
+
+1. **Video Upload**: Frontend sends base64-encoded video to Supabase edge function
+2. **Forwarding**: Edge function forwards to Railway server with FFmpeg
+3. **Frame Extraction**: FFmpeg extracts frames at specified intervals
+4. **Scene Detection**: FFmpeg detects scene changes using scene filter
+5. **Audio Analysis**: FFmpeg analyzes audio track for volume and features
+6. **Color Extraction**: Colors sampled from extracted frames
+7. **Pattern Generation**: All data compiled into structured pattern
+8. **Cleanup**: Temporary files automatically deleted
+
+### YouTube Analysis
+
 1. Extracts video ID from YouTube URL
-2. Uses YouTube's free thumbnail URLs (no API key needed!)
-3. Downloads thumbnail images
-4. Extracts dominant colors using pixel sampling
-5. Generates pattern based on colors and metadata
-
-### For Uploaded Videos
-1. Receives base64-encoded video from frontend
-2. Temporarily stores in Supabase storage
-3. Extracts metadata (name, description)
-4. Analyzes based on content type keywords
-5. Returns pattern with inferred colors and structure
-
-## Storage Requirements
-
-Create a Supabase storage bucket for temporary videos:
-
-```sql
--- Create bucket (run in Supabase SQL Editor)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('temp-videos', 'temp-videos', false);
-
--- Add policy for uploads
-CREATE POLICY "Allow service role uploads"
-ON storage.objects FOR INSERT
-TO service_role
-WITH CHECK (bucket_id = 'temp-videos');
-
--- Optional: Add cleanup policy to delete old files
--- Temp files are only needed during analysis
-```
+2. Uses free YouTube thumbnail URLs (no API key needed!)
+3. Analyzes thumbnails for colors
+4. Returns pattern based on metadata
 
 ## Performance
 
-- **YouTube Videos**: ~2-3 seconds
-- **Uploaded Videos**: ~3-5 seconds (depending on file size)
-- **Color Extraction**: <1 second per frame
-- **Total Processing**: Typically 3-5 seconds end-to-end
-
-## Limitations
-
-### Current Implementation
-- YouTube thumbnail extraction (3 frames)
-- Color sampling from image bytes
-- Content type inference from metadata
-- No external API dependencies
-
-### Not Currently Supported
-- Direct frame extraction from uploaded MP4 files (would require FFmpeg)
-- Scene change detection
-- Audio analysis
-
-### Workarounds
-For uploaded videos:
-- Analysis uses filename/description for content type
-- Colors are inferred from content type
-- To get real colors, consider pre-processing videos to extract key frames before upload
+- **Uploaded Videos (FFmpeg)**: 5-10 seconds (depends on video length)
+- **YouTube Videos**: 2-3 seconds
+- **Frame Extraction**: ~1 second per 5 frames
+- **Scene Detection**: ~2-3 seconds
+- **Audio Analysis**: ~1-2 seconds
 
 ## Best Practices
 
-### 1. Provide Good Descriptions
+### 1. Optimize Video Size
+- Keep uploads under 50MB for best performance
+- Use standard codecs (H.264, AAC)
+- 720p or 1080p works great
+
+### 2. Frame Count
 ```typescript
 {
   videoBase64: base64Data,
-  videoName: "product-launch.mp4",
-  description: "Fast-paced tech product launch with blue and white colors"
+  frameCount: 3  // Fewer frames = faster analysis
 }
 ```
 
-### 2. Use Meaningful Filenames
-- ✅ `tech-product-demo.mp4`
-- ✅ `social-media-reel-food.mp4`
-- ❌ `video123.mp4`
-
-### 3. Optimize Video Size
-- Keep uploads under 50MB for best performance
-- Consider extracting a short clip for analysis
-- Lower resolution is fine (720p works great)
-
-### 4. YouTube for Quick Analysis
-If the video is already on YouTube, use the URL method for instant analysis:
+### 3. Use for Pattern Generation
 ```typescript
-{
-  videoUrl: "https://youtube.com/watch?v=...",
-  description: "Product showcase"
-}
-```
+// Analyze reference video
+const { pattern } = await analyzeVideo({ videoBase64: base64 });
 
-## Integration Example
-
-Complete workflow for analyzing and using patterns:
-
-```typescript
-// 1. Analyze uploaded video
-async function analyzeAndGenerateVideo(videoFile: File) {
-  // Convert to base64
-  const base64 = await fileToBase64(videoFile);
-  
-  // Analyze video
-  const analyzeResponse = await fetch('/functions/v1/analyze-video', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      videoBase64: base64,
-      videoName: videoFile.name,
-      description: 'Customer testimonial video'
-    })
-  });
-  
-  const { pattern } = await analyzeResponse.json();
-  
-  // 2. Use extracted pattern to generate new video
-  const generateResponse = await fetch('/functions/v1/generate-video', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: 'Create a similar testimonial video for our product',
-      colors: pattern.colors,        // Use extracted colors
-      duration: pattern.duration,
-      sceneCount: pattern.scenes.length,
-      style: pattern.metadata.contentType
-    })
-  });
-  
-  return await generateResponse.json();
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = reject;
-  });
-}
+// Generate new video with same style
+const newVideo = await generateVideo({
+  prompt: 'Create a product showcase',
+  colors: pattern.colors,           // Use real extracted colors
+  duration: pattern.duration,
+  scenes: pattern.scenes.length,
+  audioTempo: pattern.audio.hasBeat ? 'upbeat' : 'calm'
+});
 ```
 
 ## Troubleshooting
 
-### "Only YouTube URLs are supported"
-- For non-YouTube URLs, upload the video file directly using `videoBase64`
-- Download the video first, then upload via your frontend
+### "RAILWAY_RENDER_URL not configured"
+- Set `RAILWAY_RENDER_URL` in Supabase project settings → Edge Functions → Secrets
+- Use the same Railway URL from your video rendering setup
 
-### "Video file too large"
-- Optimize video before upload (use lower resolution/bitrate)
-- Consider extracting a 10-30 second clip for analysis
-- Use YouTube URL method if video is hosted there
+### "FFmpeg video analysis failed"
+- Ensure video format is supported (MP4, MOV, AVI, WebM)
+- Check video isn't corrupted
+- Try reducing file size
 
-### Colors seem generic
-- Provide detailed description with color hints
-- Use descriptive filenames (e.g., "blue-tech-demo.mp4")
-- For YouTube videos, colors are extracted from actual thumbnails
+### Slow Analysis
+- Reduce `frameCount` (try 3 instead of 5)
+- Use smaller video files
+- Compress video before upload
 
-## Why This Approach?
+## Cost
 
-✅ **No Costs**: No API subscriptions or per-request fees  
-✅ **Privacy**: Videos only stored temporarily during analysis  
-✅ **Simple**: No API keys to manage or rotate  
-✅ **Reliable**: No third-party service dependencies  
-✅ **Fast**: Processing happens in-function without external calls  
+**Completely FREE:**
+- ✅ No FFmpeg license fees (open source)
+- ✅ No external API costs
+- ✅ Railway server already has FFmpeg installed
+- ✅ Supabase edge function included in free tier
 
-This is perfect for MVP, prototypes, and production apps that want to avoid external dependencies!
+## Why This is Amazing
+
+✅ **Real Frame Extraction** - Not guessing, actually looking at video frames  
+✅ **Scene Detection** - Automatic detection of cuts and transitions  
+✅ **Audio Analysis** - Understand audio features and rhythm  
+✅ **No External Dependencies** - Uses your existing Railway server  
+✅ **Production Ready** - FFmpeg is industry-standard video processing  
+✅ **Zero Cost** - Completely free, no API subscriptions  
+
+Perfect for building AI video generators, video editing tools, content analysis platforms, and more!

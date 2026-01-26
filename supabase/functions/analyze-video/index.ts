@@ -299,39 +299,96 @@ serve(async (req) => {
       }
     }
     
-    // Handle uploaded video file (base64)
+    // Handle uploaded video file (base64) - Use Railway FFmpeg analysis
     if (analyzeRequest.videoBase64) {
-      console.log('Video file uploaded from frontend');
+      console.log('Video file uploaded from frontend - using Railway FFmpeg analysis');
       
-      // Store the video temporarily in Supabase storage
-      const fileName = `temp-analysis/${Date.now()}-${videoName}`;
+      // Check if Railway render URL is configured
+      const railwayUrl = Deno.env.get('RAILWAY_RENDER_URL');
+      
+      if (!railwayUrl) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'RAILWAY_RENDER_URL not configured. Set it in Supabase secrets to enable FFmpeg video analysis.' 
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
       
       try {
-        // Decode base64 and upload to storage
-        const binaryString = atob(analyzeRequest.videoBase64);
-        const videoData = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          videoData[i] = binaryString.charCodeAt(i);
+        console.log('Sending video to Railway for FFmpeg analysis...');
+        
+        // Send to Railway server for deep analysis
+        const railwayResponse = await fetch(`${railwayUrl}/analyze-video`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            videoBase64: analyzeRequest.videoBase64,
+            videoName: videoName,
+            options: {
+              frameCount: frameCount,
+              extractAudio: true,
+              sceneThreshold: 0.4,
+            },
+          }),
+        });
+        
+        if (!railwayResponse.ok) {
+          const errorText = await railwayResponse.text();
+          throw new Error(`Railway analysis failed: ${railwayResponse.statusText} - ${errorText}`);
         }
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('temp-videos')
-          .upload(fileName, videoData, {
-            contentType: 'video/mp4',
-            upsert: true
-          });
+        const railwayResult = await railwayResponse.json();
         
-        if (uploadError) {
-          console.warn('Could not upload video for analysis:', uploadError);
-        } else {
-          console.log('Video uploaded for analysis:', uploadData.path);
-          
-          // For now, we can't extract frames directly from uploaded videos without FFmpeg
-          // Use metadata-based analysis as fallback
-          frameUrls = [];
+        if (!railwayResult.success) {
+          throw new Error(railwayResult.error || 'Railway analysis failed');
         }
+        
+        const pattern = railwayResult.pattern;
+        
+        // Store pattern in database
+        try {
+          await supabase
+            .from('video_patterns')
+            .insert({
+              id: pattern.id,
+              name: pattern.name,
+              pattern_data: pattern,
+              created_at: new Date().toISOString(),
+            });
+          console.log('Pattern stored successfully');
+        } catch (dbError) {
+          console.warn('Could not store pattern:', dbError);
+        }
+        
+        console.log('FFmpeg analysis completed successfully');
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Video analyzed with FFmpeg on Railway server',
+            pattern,
+            features: railwayResult.features,
+            analysisMethod: 'ffmpeg-deep-analysis',
+            note: 'Direct frame extraction, scene change detection, and audio analysis performed using FFmpeg.',
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+        
       } catch (error) {
-        console.warn('Error handling uploaded video:', error);
+        console.error('Railway FFmpeg analysis error:', error);
+        
+        // Fall back to metadata-based analysis
+        console.log('Falling back to metadata-based analysis...');
+        frameUrls = [];
       }
     }
     
