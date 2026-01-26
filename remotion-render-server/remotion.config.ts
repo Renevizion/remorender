@@ -9,6 +9,8 @@ Config.setEntryPoint('./src/index.tsx');
 
 // Configure Chromium options for better performance
 Config.setChromiumOpenGlRenderer('angle');
+// Note: Web security is disabled for development/preview only
+// The production render server uses secure Chromium settings
 Config.setChromiumDisableWebSecurity(true);
 Config.setChromiumHeadlessMode(true);
 

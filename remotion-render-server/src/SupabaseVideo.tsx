@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Video, Img } from 'remotion';
 
 interface SupabaseVideoProps {
@@ -20,6 +20,7 @@ export const SupabaseVideo: React.FC<SupabaseVideoProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+  const [videoError, setVideoError] = useState(false);
 
   // Fade in text animation
   const textOpacity = interpolate(
@@ -35,7 +36,7 @@ export const SupabaseVideo: React.FC<SupabaseVideoProps> = ({
   return (
     <AbsoluteFill>
       {/* Background Video from Supabase */}
-      {videoUrl && (
+      {videoUrl && !videoError && (
         <Video
           src={videoUrl}
           style={{
@@ -43,11 +44,15 @@ export const SupabaseVideo: React.FC<SupabaseVideoProps> = ({
             height: '100%',
             objectFit: 'cover',
           }}
+          onError={() => {
+            console.error('Failed to load video:', videoUrl);
+            setVideoError(true);
+          }}
         />
       )}
 
-      {/* If no video URL, show a placeholder */}
-      {!videoUrl && (
+      {/* If no video URL or video failed to load, show a placeholder */}
+      {(!videoUrl || videoError) && (
         <AbsoluteFill
           style={{
             backgroundColor: '#1a1a1a',
@@ -64,13 +69,29 @@ export const SupabaseVideo: React.FC<SupabaseVideoProps> = ({
               fontFamily: 'Arial, sans-serif',
             }}
           >
-            <p style={{ marginBottom: 20 }}>No video URL provided</p>
-            <p style={{ fontSize: 24, opacity: 0.7 }}>
-              Set REMOTION_VIDEO_URL environment variable
-            </p>
-            <p style={{ fontSize: 18, opacity: 0.5, marginTop: 20 }}>
-              Example: REMOTION_VIDEO_URL="https://your-supabase-url.com/video.mp4" npm run dev
-            </p>
+            {videoError ? (
+              <>
+                <p style={{ marginBottom: 20, color: '#ff6b6b' }}>
+                  ⚠️ Failed to load video
+                </p>
+                <p style={{ fontSize: 24, opacity: 0.7 }}>
+                  Check that the URL is valid and accessible
+                </p>
+                <p style={{ fontSize: 18, opacity: 0.5, marginTop: 20 }}>
+                  URL: {videoUrl}
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ marginBottom: 20 }}>No video URL provided</p>
+                <p style={{ fontSize: 24, opacity: 0.7 }}>
+                  Set REMOTION_VIDEO_URL environment variable
+                </p>
+                <p style={{ fontSize: 18, opacity: 0.5, marginTop: 20 }}>
+                  Example: REMOTION_VIDEO_URL="https://your-supabase-url.com/video.mp4" npm run dev
+                </p>
+              </>
+            )}
           </div>
         </AbsoluteFill>
       )}
