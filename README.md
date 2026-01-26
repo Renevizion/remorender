@@ -26,7 +26,8 @@ remorender/
 ├── supabase/                   # Supabase edge functions
 │   └── functions/
 │       ├── render-video/       # Edge function to initiate renders
-│       └── render-webhook/     # Edge function to receive callbacks
+│       ├── render-webhook/     # Edge function to receive callbacks
+│       └── upload-video/       # Edge function for secure video uploads
 ├── client-examples/            # Client integration examples
 │   ├── config.ts               # Server URL configuration
 │   ├── renderService.ts        # Direct API service (legacy)
