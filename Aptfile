@@ -1,6 +1,5 @@
-chromium
-chromium-driver
-ffmpeg
+libatomic1
+libglib2.0-0
 libnss3
 libnspr4
 libatk1.0-0
@@ -16,7 +15,6 @@ libgbm1
 libasound2
 libpango-1.0-0
 libcairo2
-libglib2.0-0
 libatspi2.0-0
 fonts-liberation
 libappindicator3-1
