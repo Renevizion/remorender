@@ -95,18 +95,35 @@ serve(async (req) => {
     const DEFAULT_WIDTH = 1920
     const DEFAULT_HEIGHT = 1080
 
-    // Extract resolution from plan (with fallback to composition values, then defaults)
+    // Extract resolution from plan
     // Use nullish coalescing to only fallback on null/undefined, not on 0 or other falsy values
     const planResolution = planData.plan?.resolution
-    const width = planResolution?.width ?? renderRequest.composition.width ?? DEFAULT_WIDTH
-    const height = planResolution?.height ?? renderRequest.composition.height ?? DEFAULT_HEIGHT
+    
+    // Determine resolution source based on plan availability
+    // If plan has partial resolution (only width or only height), use composition or defaults
+    let width: number
+    let height: number
+    
+    if (planResolution?.width != null && planResolution?.height != null) {
+      // Both dimensions available in plan - use them
+      width = planResolution.width
+      height = planResolution.height
+    } else if (renderRequest.composition.width != null && renderRequest.composition.height != null) {
+      // Plan resolution incomplete, use composition dimensions
+      width = renderRequest.composition.width
+      height = renderRequest.composition.height
+    } else {
+      // Fall back to defaults
+      width = DEFAULT_WIDTH
+      height = DEFAULT_HEIGHT
+    }
     
     // Validate dimensions before calculating aspect ratio
-    if (height <= 0 || width <= 0) {
+    if (height <= 0 || width <= 0 || !isFinite(width) || !isFinite(height)) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid resolution: width and height must be greater than 0' 
+          error: 'Invalid resolution: width and height must be positive finite numbers' 
         }),
         { 
           status: 400, 
