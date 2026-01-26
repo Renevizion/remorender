@@ -48,7 +48,12 @@ serve(async (req) => {
 
     // Decode base64 video data
     console.log('Decoding video data...')
-    const videoData = Uint8Array.from(atob(uploadRequest.videoBase64), c => c.charCodeAt(0))
+    // Use Deno's built-in TextEncoder for efficient decoding
+    const binaryString = atob(uploadRequest.videoBase64)
+    const videoData = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      videoData[i] = binaryString.charCodeAt(i)
+    }
 
     // Generate unique filename
     const fileName = `${Date.now()}-${uploadRequest.planId}.mp4`

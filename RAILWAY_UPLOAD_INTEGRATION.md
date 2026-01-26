@@ -22,6 +22,8 @@ Remove these variables from your Railway environment:
 Add this environment variable to Railway:
 - `UPLOAD_ENDPOINT_URL` = `https://your-project.supabase.co/functions/v1/upload-video`
 
+**Note**: This is the ONLY environment variable needed. No Supabase credentials required!
+
 ### Step 3: Update Railway Server Code
 
 Modify your Railway server's render function to use the upload endpoint:
@@ -51,8 +53,11 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     console.log(`[${jobId}] Video encoded, size: ${videoBase64.length} chars`);
     
     // Upload via edge function
-    const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL || 
-      `${process.env.SUPABASE_URL}/functions/v1/upload-video`;
+    const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL;
+    
+    if (!uploadEndpoint) {
+      throw new Error('UPLOAD_ENDPOINT_URL environment variable is not set');
+    }
       
     console.log(`[${jobId}] Uploading to:`, uploadEndpoint);
     
@@ -242,8 +247,9 @@ Expected response:
 - Don't include data URI prefix (`data:video/mp4;base64,`)
 
 ### Edge function timeout
-- For very large videos (>50MB), consider chunked uploads
-- Edge functions have a timeout limit (typically 60-120 seconds)
+- For very large videos (>50MB), consider chunked uploads or direct upload approach
+- Supabase Edge Functions have execution time limits. Check the [official Supabase documentation](https://supabase.com/docs/guides/functions/limits) for current timeout values
+- As of 2024, the default timeout is typically 150 seconds for functions
 
 ### Database not updating
 - Check that the `planId` exists in the `video_plans` table

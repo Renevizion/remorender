@@ -87,7 +87,8 @@ This function allows Railway to upload videos without needing Supabase credentia
 # If using Supabase CLI
 supabase functions deploy upload-video
 
-# If using Lovable Cloud, automatically deployed
+# If using Lovable Cloud, ensure the function is committed to your repository
+# in the supabase/functions/ directory, and it will be deployed automatically
 ```
 
 The function is located at: `supabase/functions/upload-video/index.ts`
