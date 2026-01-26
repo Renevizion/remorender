@@ -36,6 +36,57 @@ if (!process.env.UPLOAD_ENDPOINT_URL) {
   console.log('✓ Upload endpoint configured:', process.env.UPLOAD_ENDPOINT_URL);
 }
 
+// Shared function to upload video via edge function
+// Note: This uses base64 encoding which adds ~33% overhead to file size.
+// The edge function approach prioritizes security (no credentials in Railway)
+// over performance. For very large videos (>50MB), consider implementing
+// chunked uploads or direct upload with signed URLs if performance is critical.
+async function uploadVideoViaEdgeFunction(videoBuffer, planId, jobId = null) {
+  const videoBase64 = videoBuffer.toString('base64');
+  
+  const logPrefix = jobId ? `[${jobId}]` : '';
+  if (jobId) {
+    console.log(`${logPrefix} Video encoded, size: ${videoBase64.length} chars`);
+  }
+  
+  const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL;
+  
+  if (!uploadEndpoint) {
+    throw new Error('UPLOAD_ENDPOINT_URL environment variable is not set');
+  }
+  
+  if (jobId) {
+    console.log(`${logPrefix} Uploading to:`, uploadEndpoint);
+  }
+  
+  const uploadResponse = await fetch(uploadEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      planId: planId,
+      videoBase64: videoBase64
+    })
+  });
+  
+  if (!uploadResponse.ok) {
+    const errorText = await uploadResponse.text();
+    throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
+  }
+  
+  const uploadResult = await uploadResponse.json();
+  
+  if (jobId) {
+    console.log(`${logPrefix} Upload complete:`, uploadResult.videoUrl);
+  }
+  
+  return {
+    videoUrl: uploadResult.videoUrl,
+    fileName: uploadResult.fileName
+  };
+}
+
 // Async render processing with webhook callback
 async function processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId) {
   let tempDir = null;
@@ -87,40 +138,7 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     
     // Step 5: Upload via edge function (no service key needed!)
     const videoBuffer = fs.readFileSync(outputPath);
-    const videoBase64 = videoBuffer.toString('base64');
-    
-    console.log(`[${jobId}] Video encoded, size: ${videoBase64.length} chars`);
-    
-    // Upload via edge function
-    const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL;
-    
-    if (!uploadEndpoint) {
-      throw new Error('UPLOAD_ENDPOINT_URL environment variable is not set');
-    }
-    
-    console.log(`[${jobId}] Uploading to:`, uploadEndpoint);
-    
-    const uploadResponse = await fetch(uploadEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        planId: planId,
-        videoBase64: videoBase64
-      })
-    });
-    
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
-    }
-    
-    const uploadResult = await uploadResponse.json();
-    const publicUrl = uploadResult.videoUrl;
-    const fileName = uploadResult.fileName;
-    
-    console.log(`[${jobId}] Upload complete:`, publicUrl);
+    const { videoUrl: publicUrl, fileName } = await uploadVideoViaEdgeFunction(videoBuffer, planId, jobId);
     
     // Cleanup temp files
     if (tempDir) {
@@ -269,34 +287,10 @@ app.post('/render', renderLimiter, async (req, res) => {
     
     // Step 5: Upload via edge function
     const videoBuffer = fs.readFileSync(outputPath);
-    const videoBase64 = videoBuffer.toString('base64');
-    
-    // Upload via edge function
-    const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL;
-    
-    if (!uploadEndpoint) {
-      throw new Error('UPLOAD_ENDPOINT_URL environment variable is not set');
-    }
-    
-    const uploadResponse = await fetch(uploadEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        planId: planId || `sync-${Date.now()}`,
-        videoBase64: videoBase64
-      })
-    });
-    
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
-    }
-    
-    const uploadResult = await uploadResponse.json();
-    const publicUrl = uploadResult.videoUrl;
-    const fileName = uploadResult.fileName;
+    const { videoUrl: publicUrl, fileName } = await uploadVideoViaEdgeFunction(
+      videoBuffer, 
+      planId || `sync-${Date.now()}`
+    );
     
     console.log('Upload complete:', publicUrl);
     
@@ -390,33 +384,10 @@ export const SimpleVideo = () => {
     
     // Upload via edge function
     const videoBuffer = fs.readFileSync(outputPath);
-    const videoBase64 = videoBuffer.toString('base64');
-    
-    const uploadEndpoint = process.env.UPLOAD_ENDPOINT_URL;
-    
-    if (!uploadEndpoint) {
-      throw new Error('UPLOAD_ENDPOINT_URL environment variable is not set');
-    }
-    
-    const uploadResponse = await fetch(uploadEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        planId: `simple-${Date.now()}`,
-        videoBase64: videoBase64
-      })
-    });
-    
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
-    }
-    
-    const uploadResult = await uploadResponse.json();
-    const publicUrl = uploadResult.videoUrl;
-    const fileName = uploadResult.fileName;
+    const { videoUrl: publicUrl, fileName } = await uploadVideoViaEdgeFunction(
+      videoBuffer, 
+      `simple-${Date.now()}`
+    );
     
     // Cleanup temp files
     fs.rmSync(tempDir, { recursive: true, force: true });
