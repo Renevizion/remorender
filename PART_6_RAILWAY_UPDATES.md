@@ -315,8 +315,12 @@ if (planError || !plan) {
   );
 }
 
-// Extract resolution from plan
-const resolution = plan.plan.resolution || { width: 1920, height: 1080 }; // fallback
+// Default resolution constants
+const DEFAULT_WIDTH = 1920;
+const DEFAULT_HEIGHT = 1080;
+
+// Extract resolution from plan with fallback to defaults
+const resolution = plan.plan.resolution || { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT };
 const aspectRatio = resolution.width / resolution.height;
 
 // Update composition with plan resolution

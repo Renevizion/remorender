@@ -91,10 +91,29 @@ serve(async (req) => {
       )
     }
 
-    // Extract resolution from plan (with fallback to composition values)
+    // Default resolution (fallback)
+    const DEFAULT_WIDTH = 1920
+    const DEFAULT_HEIGHT = 1080
+
+    // Extract resolution from plan (with fallback to composition values, then defaults)
     const planResolution = planData.plan?.resolution
-    const width = planResolution?.width || renderRequest.composition.width
-    const height = planResolution?.height || renderRequest.composition.height
+    const width = planResolution?.width || renderRequest.composition.width || DEFAULT_WIDTH
+    const height = planResolution?.height || renderRequest.composition.height || DEFAULT_HEIGHT
+    
+    // Validate dimensions before calculating aspect ratio
+    if (height <= 0 || width <= 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid resolution: width and height must be greater than 0' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+    
     const aspectRatio = width / height
 
     console.log(`Using resolution: ${width}x${height} (aspect ratio: ${aspectRatio.toFixed(2)})`)
