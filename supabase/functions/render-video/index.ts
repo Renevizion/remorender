@@ -104,11 +104,21 @@ serve(async (req) => {
     let width: number
     let height: number
     
-    if (planResolution?.width != null && planResolution?.height != null) {
+    if (
+      planResolution?.width !== null && 
+      planResolution?.width !== undefined && 
+      planResolution?.height !== null && 
+      planResolution?.height !== undefined
+    ) {
       // Both dimensions available in plan - use them
       width = planResolution.width
       height = planResolution.height
-    } else if (renderRequest.composition.width != null && renderRequest.composition.height != null) {
+    } else if (
+      renderRequest.composition.width !== null && 
+      renderRequest.composition.width !== undefined && 
+      renderRequest.composition.height !== null && 
+      renderRequest.composition.height !== undefined
+    ) {
       // Plan resolution incomplete, use composition dimensions
       width = renderRequest.composition.width
       height = renderRequest.composition.height
@@ -119,7 +129,14 @@ serve(async (req) => {
     }
     
     // Validate dimensions before calculating aspect ratio
-    if (height <= 0 || width <= 0 || !isFinite(width) || !isFinite(height)) {
+    if (
+      typeof width !== 'number' || 
+      typeof height !== 'number' ||
+      !isFinite(width) || 
+      !isFinite(height) ||
+      width <= 0 || 
+      height <= 0
+    ) {
       return new Response(
         JSON.stringify({ 
           success: false, 
