@@ -243,6 +243,7 @@ curl -X POST http://localhost:3001/render-simple \
 - [Client Examples](./client-examples/README.md) - Integration examples and usage
 - [Remotion Compositions](./remotion-render-server/remotion/README.md) - How to create compositions
 - [Webhook Setup](./WEBHOOK_SETUP.md) - Secure webhook approach guide
+- [Part 6: Railway Cloud Renderer Updates](./PART_6_RAILWAY_UPDATES.md) - Updates for aspect ratio, resolution, and voiceover support
 
 ## Cost Estimation
 
