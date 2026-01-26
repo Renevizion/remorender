@@ -1,5 +1,37 @@
 #!/usr/bin/env bash
 
+# Exit on error
+set -e
+
+# Install required Chrome dependencies at runtime
+echo "Installing Chrome dependencies..."
+apt-get update && apt-get install -y \
+    libatomic1 \
+    libglib2.0-0 \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
+    fonts-liberation \
+    libappindicator3-1 \
+    xdg-utils \
+    ca-certificates \
+    --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
+echo "Dependencies installed. Starting server..."
+
 # Set Chromium path for Puppeteer (used by Remotion)
 export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
