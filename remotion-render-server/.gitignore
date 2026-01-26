@@ -5,3 +5,12 @@ dist
 *.mov
 *.avi
 /tmp
+
+# Remotion Studio build artifacts
+.remotion
+out
+build
+public/bundle-*.js
+public/bundle-*.js.map
+.remotion-*
+.DS_Store

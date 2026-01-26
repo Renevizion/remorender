@@ -19,6 +19,12 @@ remorender/
 ├── remotion-render-server/    # Express server for video rendering
 │   ├── package.json            # Server dependencies
 │   ├── server.js               # Main Express server (with webhook support)
+│   ├── remotion.config.ts      # Remotion Studio configuration
+│   ├── src/                    # Remotion compositions for Studio
+│   │   ├── index.tsx           # Entry point for Studio
+│   │   ├── Root.tsx            # Composition registry
+│   │   ├── HelloWorld.tsx      # Sample composition
+│   │   └── SupabaseVideo.tsx   # Composition for Supabase videos
 │   ├── Dockerfile              # Docker configuration for Railway
 │   ├── .gitignore              # Git ignore patterns
 │   └── remotion/               # Remotion compositions directory
@@ -36,6 +42,7 @@ remorender/
 │   ├── RenderButton.tsx        # React UI component (legacy)
 │   ├── EdgeFunctionRenderButton.tsx  # React component (webhook approach)
 │   └── README.md               # Client usage guide
+├── REMOTION_STUDIO.md          # Guide for using Remotion Studio
 ├── WEBHOOK_SETUP.md            # Webhook approach setup guide
 └── README.md                   # This file
 ```
@@ -45,6 +52,7 @@ remorender/
 - 🎥 Render custom Remotion compositions on-demand
 - ☁️ Automatic upload to Supabase storage
 - 🔒 **NEW**: Secure webhook approach for Lovable Cloud
+- 🎬 **NEW**: Remotion Studio support for local preview and editing
 - 🚀 Deploy to Railway or Railpack with one click
 - 🔄 Health check endpoint for monitoring
 - 📦 Simple API for client integration
@@ -59,6 +67,24 @@ remorender/
 - Railway or compatible hosting platform (for production deployment)
 
 ## Quick Start
+
+### Preview Your Videos with Remotion Studio 🎬
+
+Before deploying, you can preview and edit your video compositions locally:
+
+```bash
+cd remotion-render-server
+npm install
+npm run dev
+```
+
+This opens Remotion Studio in your browser where you can:
+- Preview compositions in real-time
+- Edit parameters (text, colors, timing)
+- Test with Supabase video URLs
+- Fine-tune before sending to production
+
+**See the complete guide:** [REMOTION_STUDIO.md](./REMOTION_STUDIO.md)
 
 ### Option 1: Webhook Approach (Recommended for Lovable Cloud)
 
@@ -211,9 +237,11 @@ curl -X POST http://localhost:3001/render-simple \
 
 ## Documentation
 
+- **[Remotion Studio Guide](./REMOTION_STUDIO.md)** - How to preview and edit videos locally
 - [Server Documentation](./remotion-render-server/README.md) - Detailed server setup and API docs
 - [Client Examples](./client-examples/README.md) - Integration examples and usage
 - [Remotion Compositions](./remotion-render-server/remotion/README.md) - How to create compositions
+- [Webhook Setup](./WEBHOOK_SETUP.md) - Secure webhook approach guide
 
 ## Cost Estimation
 
