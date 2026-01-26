@@ -6,6 +6,7 @@ const { renderMedia, selectComposition } = require('@remotion/renderer');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const videoAnalysis = require('./videoAnalysis');
 
 const app = express();
 
@@ -427,6 +428,130 @@ export const SimpleVideo = () => {
     res.status(500).json({ 
       success: false,
       error: error.message 
+    });
+  }
+});
+
+// Video Analysis Endpoint
+// Analyzes uploaded videos using FFmpeg: extracts frames, detects scene changes, analyzes audio
+app.post('/analyze-video', async (req, res) => {
+  let tempVideoPath = null;
+  let analysisDir = null;
+  
+  try {
+    console.log('Video analysis request received');
+    
+    const { videoBase64, videoName = 'uploaded-video.mp4', options = {} } = req.body;
+    
+    if (!videoBase64) {
+      return res.status(400).json({
+        success: false,
+        error: 'videoBase64 is required'
+      });
+    }
+    
+    // Create temp directory for video
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'video-upload-'));
+    tempVideoPath = path.join(tempDir, videoName);
+    
+    // Decode and save video
+    console.log('Decoding video from base64...');
+    const videoBuffer = Buffer.from(videoBase64, 'base64');
+    fs.writeFileSync(tempVideoPath, videoBuffer);
+    console.log(`Video saved: ${tempVideoPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
+    
+    // Analyze video with FFmpeg
+    console.log('Starting FFmpeg analysis...');
+    const analysis = await videoAnalysis.analyzeVideo(tempVideoPath, {
+      frameCount: options.frameCount || 5,
+      sceneThreshold: options.sceneThreshold || 0.4,
+      extractAudio: options.extractAudio !== false,
+    });
+    
+    analysisDir = analysis.analysisDir;
+    
+    // Generate pattern from analysis
+    const pattern = {
+      id: `analysis-${Date.now()}`,
+      name: videoName.replace(/\.[^/.]+$/, ''),
+      duration: analysis.metadata.duration,
+      resolution: {
+        width: analysis.metadata.width,
+        height: analysis.metadata.height,
+      },
+      fps: analysis.metadata.fps,
+      colors: analysis.colors,
+      scenes: analysis.scenes.map((scene, i) => ({
+        startTime: scene.startTime,
+        endTime: scene.endTime,
+        duration: scene.duration,
+        description: `Scene ${i + 1}`,
+        transition: i > 0 ? 'cut' : 'none',
+        hasAudio: analysis.audio.hasAudio,
+      })),
+      audio: analysis.audio,
+      sceneChanges: analysis.sceneChanges,
+      metadata: {
+        analyzedAt: new Date().toISOString(),
+        source: videoName,
+        analysisMethod: 'ffmpeg-deep-analysis',
+        videoCodec: analysis.metadata.videoCodec,
+        audioCodec: analysis.metadata.audioCodec,
+        bitrate: analysis.metadata.bitrate,
+        fileSize: analysis.metadata.size,
+      },
+    };
+    
+    console.log('Analysis complete:', {
+      duration: pattern.duration,
+      scenes: pattern.scenes.length,
+      colors: pattern.colors.length,
+      hasAudio: pattern.audio.hasAudio,
+    });
+    
+    // Cleanup
+    if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+      fs.unlinkSync(tempVideoPath);
+    }
+    if (tempDir && fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+    if (analysisDir) {
+      videoAnalysis.cleanup(analysisDir);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Video analyzed successfully with FFmpeg',
+      pattern,
+      features: {
+        frameExtraction: true,
+        sceneDetection: true,
+        audioAnalysis: analysis.audio.hasAudio,
+        colorExtraction: true,
+      },
+      note: 'Analysis performed using FFmpeg with direct frame extraction, scene change detection, and audio analysis.',
+    });
+    
+  } catch (error) {
+    console.error('Video analysis error:', error);
+    
+    // Cleanup on error
+    try {
+      if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+        fs.unlinkSync(tempVideoPath);
+      }
+      if (analysisDir) {
+        videoAnalysis.cleanup(analysisDir);
+      }
+    } catch (cleanupError) {
+      console.error('Cleanup error:', cleanupError);
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'FFmpeg video analysis failed. Ensure FFmpeg is installed and the video format is supported.',
     });
   }
 });

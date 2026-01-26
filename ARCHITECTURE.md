@@ -271,3 +271,132 @@
      └───────────── Validation Error
                     (return 400 immediately)
 ```
+
+## Video Analysis Flow
+
+### Pattern Extraction Workflow
+
+```
+┌─────────────────┐
+│   Client App    │
+│  (Upload video) │
+└────────┬────────┘
+         │ 1. POST analyze request
+         │    { videoUrl, videoName, description }
+         ▼
+┌─────────────────────────┐
+│  Supabase Edge Function │
+│     analyze-video       │
+└────────┬────────────────┘
+         │ 2. Analyze metadata
+         │    (content type, duration, etc.)
+         ▼
+┌─────────────────────────┐
+│  Pattern Generation     │
+│  - Extract colors       │
+│  - Identify scenes      │
+│  - Detect transitions   │
+│  - Generate typography  │
+└────────┬────────────────┘
+         │ 3. Store pattern
+         │    in video_patterns table
+         ▼
+┌─────────────────────────┐
+│  Supabase Database      │
+│  video_patterns table   │
+└────────┬────────────────┘
+         │ 4. Return pattern
+         │    { id, colors, scenes, ... }
+         ▼
+┌─────────────────┐
+│   Client App    │
+│  (Use pattern   │
+│   for rendering)│
+└─────────────────┘
+```
+
+### Pattern Data Structure
+
+```
+VideoPattern {
+  id: UUID
+  name: string
+  duration: number
+  colors: string[]         // Hex color palette
+  typography: {
+    primaryFont: string
+    secondaryFont: string
+    style: string
+  }
+  scenes: [
+    {
+      startTime: number
+      endTime: number
+      description: string
+      transition: string   // fade, slide, wipe, etc.
+      animation: string    // slideUp, zoomIn, etc.
+    }
+  ]
+  metadata: {
+    analyzedAt: timestamp
+    source: string
+    contentType: string   // tech-demo, product-showcase, etc.
+  }
+}
+```
+
+### Integration with Render Pipeline
+
+```
+┌──────────────────┐
+│ Analyze Video    │
+│ (extract pattern)│
+└────────┬─────────┘
+         │
+         │ Pattern ID
+         ▼
+┌──────────────────┐
+│ Generate Plan    │
+│ (use pattern as  │
+│  style reference)│
+└────────┬─────────┘
+         │
+         │ Video Plan
+         ▼
+┌──────────────────┐
+│ Render Video     │
+│ (apply styles    │
+│  from pattern)   │
+└────────┬─────────┘
+         │
+         │ Final Video
+         ▼
+┌──────────────────┐
+│ Supabase Storage │
+└──────────────────┘
+```
+
+### Content Type Detection
+
+The analyze-video function automatically detects content types:
+
+| Content Type      | Detected From              | Color Palette          | Scene Count | Duration |
+|-------------------|----------------------------|------------------------|-------------|----------|
+| tech-demo         | "tech", "saas" keywords    | Blue, Gray, White      | 4           | 20s      |
+| product-showcase  | "product" keyword          | Vibrant, Modern        | 3           | 15s      |
+| explainer         | "explainer" keyword        | Purple, Orange, Green  | 5           | 30s      |
+| social-media      | "social" keyword           | Pink, Blue, Yellow     | 2           | 10s      |
+| commercial        | Default                    | Black, White           | 3           | 15s      |
+
+### Future Enhancements
+
+For deeper video analysis, consider adding:
+
+1. **Frame Extraction**: Use FFmpeg to extract video frames
+2. **Computer Vision**: Analyze frames with ML models
+3. **Audio Analysis**: Extract soundtrack tempo and beats
+4. **Scene Detection**: Automatically detect cuts and transitions
+5. **OCR**: Extract text from video frames
+6. **Object Detection**: Identify products, people, logos
+
+These enhancements would require additional infrastructure beyond Supabase edge functions.
