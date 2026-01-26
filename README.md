@@ -238,6 +238,7 @@ curl -X POST http://localhost:3001/render-simple \
 ## Documentation
 
 - **[Remotion Studio Guide](./REMOTION_STUDIO.md)** - How to preview and edit videos locally
+- **[Code Format Guide](./CODE_FORMAT_GUIDE.md)** - Required code format for server rendering (important!)
 - [Server Documentation](./remotion-render-server/README.md) - Detailed server setup and API docs
 - [Client Examples](./client-examples/README.md) - Integration examples and usage
 - [Remotion Compositions](./remotion-render-server/remotion/README.md) - How to create compositions

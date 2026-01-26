@@ -2,6 +2,14 @@
 
 This guide explains how to use Remotion Studio to preview and edit your videos locally before rendering them on Railway.
 
+## Important: Code Format for Rendering
+
+**Before you start**, understand that code format matters when sending compositions to the server for rendering. If you experience animations working in Studio but disappearing in the final render:
+
+👉 **Read the [Code Format Guide](./CODE_FORMAT_GUIDE.md)** for the exact format required.
+
+Common issue: Missing `import React from 'react';` or incomplete module structure.
+
 ## What is Remotion Studio?
 
 Remotion Studio is a visual editor that allows you to:

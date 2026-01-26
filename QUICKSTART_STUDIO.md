@@ -2,6 +2,14 @@
 
 This guide will help you get started with Remotion Studio for previewing and editing videos.
 
+## ⚠️ Important: Code Format
+
+**If animations work in Studio but disappear in rendered videos**, you need to fix your code format!
+
+👉 **Read:** [CODE_FORMAT_GUIDE.md](./CODE_FORMAT_GUIDE.md) - Explains the exact format required for server rendering.
+
+**Quick fix:** Always include `import React from 'react';` at the top of your code.
+
 ## Installation
 
 1. **Clone the repository:**
