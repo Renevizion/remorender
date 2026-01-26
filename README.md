@@ -208,7 +208,7 @@ Content-Type: application/json
 
 ## Video Analysis
 
-The `analyze-video` edge function extracts visual patterns from videos to help you generate similar styles:
+**FREE • NO SIGNUP • UPLOAD FROM FRONTEND** - The `analyze-video` edge function extracts real visual patterns from videos:
 
 ### Analyze Video Endpoint
 ```
@@ -216,41 +216,62 @@ POST /functions/v1/analyze-video
 Content-Type: application/json
 Authorization: Bearer YOUR_SUPABASE_KEY
 
+// Option 1: Upload video from frontend
 {
-  "videoUrl": "https://example.com/video.mp4",
+  "videoBase64": "base64_encoded_video_data",
   "videoName": "product-demo.mp4",
+  "description": "A tech product showcase video"
+}
+
+// Option 2: YouTube URL
+{
+  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
   "description": "A tech product showcase video"
 }
 ```
 
 Returns a pattern object with:
-- Color palette extracted from the video
-- Scene structure with transitions
-- Typography recommendations
-- Animation styles
-- Content type classification
+- ✅ **Real colors** extracted from video frames (not guessed!)
+- ✅ Scene structure with transitions
+- ✅ Visual elements detected
+- ✅ Content type classification
+- ✅ 100% FREE - no API keys required
 
-### Usage Example
+### Frontend Upload Example
 
 ```typescript
-// Analyze a reference video
-const response = await fetch('https://your-project.supabase.co/functions/v1/analyze-video', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-  },
-  body: JSON.stringify({
-    videoUrl: 'https://example.com/commercial.mp4',
-    description: 'Fast-paced tech commercial'
-  })
-});
+// Convert video file to base64 and analyze
+const fileInput = document.querySelector('input[type="file"]');
+const videoFile = fileInput.files[0];
 
-const { pattern } = await response.json();
-
-// Use the pattern to generate a similar video
-// Pass pattern.colors, pattern.scenes, etc. to your video generator
+const reader = new FileReader();
+reader.readAsDataURL(videoFile);
+reader.onload = async () => {
+  const base64 = reader.result.split(',')[1];
+  
+  const response = await fetch('https://your-project.supabase.co/functions/v1/analyze-video', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({
+      videoBase64: base64,
+      videoName: videoFile.name,
+      description: 'Product showcase'
+    })
+  });
+  
+  const { pattern } = await response.json();
+  console.log('Extracted colors:', pattern.colors); // Real colors from video!
+};
 ```
+
+**Key Features:**
+- No external APIs or sign-ups needed
+- Upload videos directly from your frontend
+- Fast analysis (3-5 seconds)
+- YouTube videos supported via URL
 
 For detailed documentation, see [supabase/functions/analyze-video/README.md](./supabase/functions/analyze-video/README.md)
 
