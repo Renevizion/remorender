@@ -79,6 +79,22 @@ supabase functions deploy render-video
 
 The function is located at: `supabase/functions/render-video/index.ts`
 
+### 1.3 Deploy upload-video function (Optional - for maximum security)
+
+This function allows Railway to upload videos without needing Supabase credentials.
+
+```bash
+# If using Supabase CLI
+supabase functions deploy upload-video
+
+# If using Lovable Cloud, ensure the function is committed to your repository
+# in the supabase/functions/ directory, and it will be deployed automatically
+```
+
+The function is located at: `supabase/functions/upload-video/index.ts`
+
+See the "Alternative: Railway Returns Video Data" section below for setup instructions.
+
 ## Step 2: Configure Environment Variables
 
 ### 2.1 Supabase Edge Function Secrets
@@ -279,14 +295,96 @@ Verify:
 2. Bucket has public access (or appropriate policies)
 3. Railway has correct `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
 
-## Alternative: Railway Returns Video Data
+## Alternative: Railway Returns Video Data (Recommended for Maximum Security)
 
-If you want Railway to have ZERO Supabase credentials, you can modify the webhook to accept the video file directly instead of a URL. This requires:
+If you want Railway to have ZERO Supabase credentials, you can use the `upload-video` edge function that accepts the video file directly from Railway instead of Railway uploading to storage directly.
 
-1. Railway renders the video and sends the binary data to the webhook
-2. The webhook edge function uploads the video to Supabase Storage
+### How It Works
 
-This approach is more secure but increases network transfer times. Contact us if you need help implementing this variation.
+1. Railway renders the video locally
+2. Railway encodes the video as base64
+3. Railway POSTs to the `upload-video` edge function
+4. The edge function uploads to Supabase Storage (using internal service key)
+5. The edge function updates the database with the video URL
+
+### Setup Instructions
+
+#### 1. Deploy the upload-video edge function
+
+```bash
+# If using Supabase CLI
+supabase functions deploy upload-video
+
+# If using Lovable Cloud, automatically deployed
+```
+
+The function is located at: `supabase/functions/upload-video/index.ts`
+
+#### 2. Remove Supabase credentials from Railway
+
+You can now remove the `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` environment variables from Railway entirely.
+
+#### 3. Update Railway to use the upload endpoint
+
+Modify your Railway server to POST the rendered video to:
+
+```
+POST https://your-project.supabase.co/functions/v1/upload-video
+```
+
+With JSON body:
+```json
+{
+  "planId": "your-plan-id",
+  "videoBase64": "base64-encoded-video-data"
+}
+```
+
+Example Railway code:
+```javascript
+// After rendering the video
+const videoBuffer = fs.readFileSync(outputPath);
+const videoBase64 = videoBuffer.toString('base64');
+
+// Upload via edge function
+const uploadResponse = await fetch(`${supabaseUrl}/functions/v1/upload-video`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    planId: planId,
+    videoBase64: videoBase64
+  })
+});
+
+const uploadResult = await uploadResponse.json();
+const videoUrl = uploadResult.videoUrl;
+
+// Then call the webhook with the video URL
+await fetch(webhookUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jobId,
+    planId,
+    status: 'completed',
+    videoUrl: videoUrl
+  })
+});
+```
+
+### Trade-offs
+
+**Benefits:**
+- ✅ Railway has ZERO access to Supabase credentials
+- ✅ Maximum security - all Supabase access happens in edge functions
+- ✅ Easier Railway configuration (no secrets needed)
+
+**Considerations:**
+- ⚠️ Slightly slower due to base64 encoding/decoding
+- ⚠️ Requires edge function invocation for upload (included in free tier)
+- ⚠️ Network transfer of entire video through edge function
 
 ## Cost Considerations
 
