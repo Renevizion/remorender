@@ -15,6 +15,22 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// Webpack override function to ensure React is properly resolved
+// This fixes animation rendering issues where spring/interpolate work in Studio but not in renders
+function getWebpackOverride(config) {
+  return {
+    ...config,
+    resolve: {
+      ...config.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        'react': require.resolve('react'),
+        'react-dom': require.resolve('react-dom'),
+      }
+    }
+  };
+}
+
 // Rate limiting to prevent abuse
 const renderLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -105,7 +121,7 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     console.log(`[${jobId}] Bundling...`);
     const bundleLocation = await bundle({
       entryPoint,
-      webpackOverride: (config) => config
+      webpackOverride: getWebpackOverride
     });
     
     // Step 3: Select composition
@@ -254,7 +270,7 @@ app.post('/render', renderLimiter, async (req, res) => {
     console.log('Bundling...');
     const bundleLocation = await bundle({
       entryPoint,
-      webpackOverride: (config) => config
+      webpackOverride: getWebpackOverride
     });
     
     // Step 3: Select composition
@@ -319,6 +335,7 @@ app.post('/render-simple', renderLimiter, async (req, res) => {
     
     // Use a built-in simple composition
     const simpleCode = `
+import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 
 export const SimpleVideo = () => {
@@ -353,7 +370,7 @@ export const SimpleVideo = () => {
     console.log('Bundling simple video...');
     const bundleLocation = await bundle({
       entryPoint,
-      webpackOverride: (config) => config
+      webpackOverride: getWebpackOverride
     });
     
     console.log('Selecting composition...');
