@@ -96,9 +96,10 @@ serve(async (req) => {
     const DEFAULT_HEIGHT = 1080
 
     // Extract resolution from plan (with fallback to composition values, then defaults)
+    // Use nullish coalescing to only fallback on null/undefined, not on 0 or other falsy values
     const planResolution = planData.plan?.resolution
-    const width = planResolution?.width || renderRequest.composition.width || DEFAULT_WIDTH
-    const height = planResolution?.height || renderRequest.composition.height || DEFAULT_HEIGHT
+    const width = planResolution?.width ?? renderRequest.composition.width ?? DEFAULT_WIDTH
+    const height = planResolution?.height ?? renderRequest.composition.height ?? DEFAULT_HEIGHT
     
     // Validate dimensions before calculating aspect ratio
     if (height <= 0 || width <= 0) {
