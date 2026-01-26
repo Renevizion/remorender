@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+# Exit on error
+set -e
+
 # Install required Chrome dependencies at runtime
 echo "Installing Chrome dependencies..."
 apt-get update && apt-get install -y \
+    libatomic1 \
     libglib2.0-0 \
     libnss3 \
     libnspr4 \
