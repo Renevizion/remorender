@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y \
     chromium \
     ffmpeg \
     libglib2.0-0 \
-    libgobject-2.0-0 \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
