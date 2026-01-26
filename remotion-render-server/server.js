@@ -105,7 +105,20 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     console.log(`[${jobId}] Bundling...`);
     const bundleLocation = await bundle({
       entryPoint,
-      webpackOverride: (config) => config
+      webpackOverride: (config) => {
+        // Ensure React is properly resolved
+        return {
+          ...config,
+          resolve: {
+            ...config.resolve,
+            alias: {
+              ...config.resolve?.alias,
+              'react': require.resolve('react'),
+              'react-dom': require.resolve('react-dom'),
+            }
+          }
+        };
+      }
     });
     
     // Step 3: Select composition
@@ -254,7 +267,20 @@ app.post('/render', renderLimiter, async (req, res) => {
     console.log('Bundling...');
     const bundleLocation = await bundle({
       entryPoint,
-      webpackOverride: (config) => config
+      webpackOverride: (config) => {
+        // Ensure React is properly resolved
+        return {
+          ...config,
+          resolve: {
+            ...config.resolve,
+            alias: {
+              ...config.resolve?.alias,
+              'react': require.resolve('react'),
+              'react-dom': require.resolve('react-dom'),
+            }
+          }
+        };
+      }
     });
     
     // Step 3: Select composition
@@ -319,6 +345,7 @@ app.post('/render-simple', renderLimiter, async (req, res) => {
     
     // Use a built-in simple composition
     const simpleCode = `
+import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 
 export const SimpleVideo = () => {
@@ -353,7 +380,20 @@ export const SimpleVideo = () => {
     console.log('Bundling simple video...');
     const bundleLocation = await bundle({
       entryPoint,
-      webpackOverride: (config) => config
+      webpackOverride: (config) => {
+        // Ensure React is properly resolved
+        return {
+          ...config,
+          resolve: {
+            ...config.resolve,
+            alias: {
+              ...config.resolve?.alias,
+              'react': require.resolve('react'),
+              'react-dom': require.resolve('react-dom'),
+            }
+          }
+        };
+      }
     });
     
     console.log('Selecting composition...');
