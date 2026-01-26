@@ -31,6 +31,7 @@ remorender/
 │       └── README.md           # Composition examples
 ├── supabase/                   # Supabase edge functions
 │   └── functions/
+│       ├── analyze-video/      # Edge function to analyze video patterns
 │       ├── render-video/       # Edge function to initiate renders
 │       ├── render-webhook/     # Edge function to receive callbacks
 │       └── upload-video/       # Edge function for secure video uploads
@@ -50,6 +51,7 @@ remorender/
 ## Features
 
 - 🎥 Render custom Remotion compositions on-demand
+- 🔍 **NEW**: Analyze videos to extract visual patterns and styles
 - ☁️ Automatic upload to Supabase storage
 - 🔒 **NEW**: Secure webhook approach for Lovable Cloud
 - 🎬 **NEW**: Remotion Studio support for local preview and editing
@@ -203,6 +205,54 @@ Content-Type: application/json
   "duration": 90
 }
 ```
+
+## Video Analysis
+
+The `analyze-video` edge function extracts visual patterns from videos to help you generate similar styles:
+
+### Analyze Video Endpoint
+```
+POST /functions/v1/analyze-video
+Content-Type: application/json
+Authorization: Bearer YOUR_SUPABASE_KEY
+
+{
+  "videoUrl": "https://example.com/video.mp4",
+  "videoName": "product-demo.mp4",
+  "description": "A tech product showcase video"
+}
+```
+
+Returns a pattern object with:
+- Color palette extracted from the video
+- Scene structure with transitions
+- Typography recommendations
+- Animation styles
+- Content type classification
+
+### Usage Example
+
+```typescript
+// Analyze a reference video
+const response = await fetch('https://your-project.supabase.co/functions/v1/analyze-video', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+  },
+  body: JSON.stringify({
+    videoUrl: 'https://example.com/commercial.mp4',
+    description: 'Fast-paced tech commercial'
+  })
+});
+
+const { pattern } = await response.json();
+
+// Use the pattern to generate a similar video
+// Pass pattern.colors, pattern.scenes, etc. to your video generator
+```
+
+For detailed documentation, see [supabase/functions/analyze-video/README.md](./supabase/functions/analyze-video/README.md)
 
 ## Development
 
