@@ -4,6 +4,7 @@
  * TEST THIS: Switch between landscape, vertical, square in Remotion Studio
  */
 
+import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 
 export type AspectRatio =

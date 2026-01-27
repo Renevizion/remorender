@@ -61,7 +61,7 @@ export const RemotionRoot: React.FC = () => {
       {/* DynamicVideo composition - Main composition for frontend */}
       <Composition
         id="DynamicVideo"
-        component={DynamicVideo}
+        component={DynamicVideo as any}
         durationInFrames={150}
         fps={30}
         width={1920}
@@ -74,7 +74,7 @@ export const RemotionRoot: React.FC = () => {
       {/* Sample composition for testing */}
       <Composition
         id="HelloWorld"
-        component={HelloWorld}
+        component={HelloWorld as any}
         durationInFrames={150}
         fps={30}
         width={1920}
@@ -90,7 +90,7 @@ export const RemotionRoot: React.FC = () => {
       {/* Composition for working with Supabase videos */}
       <Composition
         id="SupabaseVideo"
-        component={SupabaseVideo}
+        component={SupabaseVideo as any}
         durationInFrames={150}
         fps={30}
         width={1920}

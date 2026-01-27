@@ -5,7 +5,7 @@
  * YOU CAN TEST THIS with any MP3/WAV file.
  */
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCurrentFrame, useVideoConfig, Audio, staticFile } from 'remotion';
 import { useAudioData, visualizeAudio } from '@remotion/media-utils';
 

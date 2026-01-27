@@ -7,6 +7,7 @@
  * - Professional effects (bloom, vignette, grain)
  */
 
+import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 import { noise2D } from '@remotion/noise';
 
