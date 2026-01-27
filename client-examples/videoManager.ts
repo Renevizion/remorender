@@ -47,7 +47,7 @@ export async function handleRenderVideo(planId: string): Promise<string> {
     const videoUrl = await renderVideoOnRailway(
       data.generated_code,
       {
-        id: 'MyVideo',
+        id: 'DynamicVideo', // Updated to match backend composition
         width: 1920,
         height: 1080,
         fps: 30,

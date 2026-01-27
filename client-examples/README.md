@@ -39,7 +39,7 @@ async function renderVideo(planId: string) {
       planId,
       remotionCode,
       {
-        id: 'MyVideo',
+        id: 'DynamicVideo',
         width: 1920,
         height: 1080,
         fps: 30,
@@ -98,7 +98,7 @@ function MyApp() {
         planId="your-plan-id"
         remotionCode={remotionCode}
         composition={{
-          id: 'MyVideo',
+          id: 'DynamicVideo',
           width: 1920,
           height: 1080,
           fps: 30,
@@ -147,7 +147,7 @@ export const MyVideo = () => (
 const videoUrl = await renderVideoOnRailway(
   remotionCode,
   {
-    id: 'MyVideo',
+    id: 'DynamicVideo',
     width: 1920,
     height: 1080,
     fps: 30,
