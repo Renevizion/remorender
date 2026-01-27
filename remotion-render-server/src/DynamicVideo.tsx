@@ -1238,9 +1238,13 @@ const TextElement: React.FC<{
         fontSize: adjustedFontSize,
         fontWeight: (textStyle.fontWeight as number) || (isHeadline ? 800 : 500),
         letterSpacing: isHeadline ? '-0.02em' : '0',
-        lineHeight: 1.1,
-        textAlign: 'center',
+        lineHeight: (textStyle.lineHeight as number) || 1.1,
+        textAlign: (textStyle.textAlign as any) || 'center',
         maxWidth: `${maxWidth}px`,
+        padding: (textStyle.padding as number) || undefined,
+        opacity: (textStyle.opacity as number) || 1,
+        background: (textStyle.background as string) || undefined,
+        borderRadius: (textStyle.borderRadius as number) || undefined,
         ...(useGradient
           ? {
               background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`,
@@ -1250,7 +1254,7 @@ const TextElement: React.FC<{
             }
           : {
               color: (textStyle.color as string) || colors[0] || '#ffffff',
-              textShadow: isHeadline ? '0 4px 30px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.2)',
+              textShadow: (textStyle.textShadow as string) || (isHeadline ? '0 4px 30px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.2)'),
             }),
       }}
     >
@@ -1538,8 +1542,9 @@ const ShapeElement: React.FC<{
     );
   }
   
-  // Default shape - gradient filled
+  // Default shape - gradient filled or solid color
   const background = (shapeStyle.background as string) || 
+    (shapeStyle.color as string) ||
     `linear-gradient(135deg, ${colors[1]}20 0%, ${colors[1]}10 100%)`;
   
   return (
@@ -1550,8 +1555,8 @@ const ShapeElement: React.FC<{
         height,
         background,
         borderRadius,
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
+        border: (shapeStyle.border as string) || '1px solid rgba(255,255,255,0.1)',
+        boxShadow: (shapeStyle.boxShadow as string) || '0 20px 50px rgba(0,0,0,0.25)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
