@@ -119,6 +119,7 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
   try {
     console.log(`[${jobId}] Processing render asynchronously...`);
     console.log(`[${jobId}] Composition ID: ${composition.id}`);
+    console.log(`[${jobId}] Input Props:`, JSON.stringify(inputProps, null, 2));
     
     // Create temp directory for output file
     tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
@@ -256,12 +257,23 @@ app.get('/health', (req, res) => {
 // Main render endpoint
 app.post('/render', renderLimiter, async (req, res) => {
   try {
+    // Backward compatibility: Transform old format to new format
+    // Old format: { plan: {...} } at top level
+    // New format: { inputProps: { plan: {...} } }
+    if (req.body.plan && !req.body.inputProps) {
+      console.log('Detected old format (plan at top level), transforming to new format...');
+      req.body.inputProps = { plan: req.body.plan };
+      delete req.body.plan; // Remove from top level to avoid confusion
+    }
+    
     const { code, composition, inputProps, webhookUrl, jobId, planId } = req.body;
     
     console.log('Starting render...');
     console.log('Webhook URL:', webhookUrl);
     console.log('Job ID:', jobId);
     console.log('Plan ID:', planId);
+    console.log('Input Props:', JSON.stringify(inputProps, null, 2));
+    console.log('Composition:', JSON.stringify(composition, null, 2));
     
     // If webhook is provided, respond immediately and process async
     const useWebhook = !!webhookUrl;
@@ -287,6 +299,7 @@ app.post('/render', renderLimiter, async (req, res) => {
     // Otherwise, process synchronously (legacy mode)
     console.log('Starting synchronous render...');
     console.log('Composition ID:', composition.id);
+    console.log('Input Props:', JSON.stringify(inputProps, null, 2));
     
     // Create temp directory for output file
     const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
