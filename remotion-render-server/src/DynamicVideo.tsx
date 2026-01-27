@@ -899,13 +899,22 @@ const ElementRenderer: React.FC<{
     );
   }
   
-  // 3D Card: Simple implementation using Rect with transforms
+  // 3D Card: Implementation with proper style support (backgroundImage, etc.)
   if (styleType === '3d-card' || content.includes('3d card') || content.includes('perspective card')) {
     const entrySpring = spring({ fps, frame: sceneFrame, config: { damping: 25, stiffness: 70 } });
     const floatY = noise3D('float-' + element.id, 0, 0, sceneFrame * 0.02) * 10;
     const rotateY = interpolate(entrySpring, [0, 1], [-15, 5]);
     const width = (element.size?.width || 400);
     const height = (element.size?.height || 280);
+    const cardStyle = element.style as Record<string, unknown>;
+    
+    // Extract style properties
+    const background = cardStyle?.background as string || 'rgba(255,255,255,0.1)';
+    const backgroundImage = cardStyle?.backgroundImage as string;
+    const backgroundSize = cardStyle?.backgroundSize as string || 'cover';
+    const backgroundPosition = cardStyle?.backgroundPosition as string || 'center';
+    const borderRadius = cardStyle?.borderRadius as number || 24;
+    const boxShadow = cardStyle?.boxShadow as string || '0 10px 30px rgba(0,0,0,0.1)';
     
     return wrapWithMotionBlur(
       <div style={{
@@ -916,22 +925,27 @@ const ElementRenderer: React.FC<{
         <div style={{
           transform: `rotateY(${rotateY}deg) scale(${entrySpring})`,
           transformStyle: 'preserve-3d',
+          width,
+          height,
+          position: 'relative',
         }}>
-          <Rect 
-            width={width} 
-            height={height} 
-            fill="rgba(255,255,255,0.1)" 
-            cornerRadius={24} 
-          />
           <div style={{
-            position: 'absolute',
-            inset: 0,
+            width: '100%',
+            height: '100%',
+            background,
+            backgroundImage,
+            backgroundSize,
+            backgroundPosition,
+            borderRadius,
+            boxShadow,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 24,
+            padding: 20,
             color: '#fff',
+            fontSize: 28,
+            fontWeight: 700,
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
           }}>
             {element.content || ''}
           </div>
@@ -1224,9 +1238,13 @@ const TextElement: React.FC<{
         fontSize: adjustedFontSize,
         fontWeight: (textStyle.fontWeight as number) || (isHeadline ? 800 : 500),
         letterSpacing: isHeadline ? '-0.02em' : '0',
-        lineHeight: 1.1,
-        textAlign: 'center',
+        lineHeight: (textStyle.lineHeight as number) || 1.1,
+        textAlign: (textStyle.textAlign as any) || 'center',
         maxWidth: `${maxWidth}px`,
+        padding: (textStyle.padding as number) || undefined,
+        opacity: (textStyle.opacity as number) || 1,
+        background: (textStyle.background as string) || undefined,
+        borderRadius: (textStyle.borderRadius as number) || undefined,
         ...(useGradient
           ? {
               background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`,
@@ -1236,7 +1254,7 @@ const TextElement: React.FC<{
             }
           : {
               color: (textStyle.color as string) || colors[0] || '#ffffff',
-              textShadow: isHeadline ? '0 4px 30px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.2)',
+              textShadow: (textStyle.textShadow as string) || (isHeadline ? '0 4px 30px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.2)'),
             }),
       }}
     >
@@ -1524,8 +1542,9 @@ const ShapeElement: React.FC<{
     );
   }
   
-  // Default shape - gradient filled
+  // Default shape - gradient filled or solid color
   const background = (shapeStyle.background as string) || 
+    (shapeStyle.color as string) ||
     `linear-gradient(135deg, ${colors[1]}20 0%, ${colors[1]}10 100%)`;
   
   return (
@@ -1536,8 +1555,8 @@ const ShapeElement: React.FC<{
         height,
         background,
         borderRadius,
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
+        border: (shapeStyle.border as string) || '1px solid rgba(255,255,255,0.1)',
+        boxShadow: (shapeStyle.boxShadow as string) || '0 20px 50px rgba(0,0,0,0.25)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1673,6 +1692,7 @@ const ImageElement: React.FC<{
             width: '100%',
             height: '100%',
             overflow: 'hidden',
+            border: (imageStyle?.border as string) || undefined,
             borderRadius: (imageStyle?.borderRadius as number) || 16,
             boxShadow: (imageStyle?.boxShadow as string) || '0 25px 50px rgba(0,0,0,0.35)',
           }}
@@ -1683,7 +1703,8 @@ const ImageElement: React.FC<{
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: (imageStyle?.objectFit as string) || 'cover',
+              objectPosition: (imageStyle?.objectPosition as string) || 'center',
               filter: (imageStyle?.filter as string) || 'brightness(1.05) contrast(1.02)',
               transform: `scale(${kenBurnsScale * parallaxMultiplier}) translate(${kenBurnsPanX}%, ${kenBurnsPanY}%)`,
             }}
