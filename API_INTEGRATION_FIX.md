@@ -1,10 +1,29 @@
-# API Integration Fix Required
+# API Integration Fix (OPTIONAL - Server Now Supports Both Formats)
 
-## Problem
+## UPDATE: Backend Compatibility Added ✅
 
-The video-canvas-creator's `render-video` edge function is sending the video plan in the wrong format, causing renders to fail with "Welcome to Remotion" instead of the actual video content.
+**Good news!** As of this PR, the remorender server now **automatically accepts both formats**. You don't need to change your frontend unless you want to use the new format for clarity.
 
-## Root Cause
+### Backward Compatibility
+
+The server now detects and transforms the old format automatically:
+
+```javascript
+// Server does this automatically for you
+if (req.body.plan && !req.body.inputProps) {
+  req.body.inputProps = { plan: req.body.plan };
+}
+```
+
+**Result:** Your current frontend code works as-is! No changes required.
+
+---
+
+## Original Issue (Now Fixed by Server)
+
+The video-canvas-creator's `render-video` edge function was sending the video plan in the wrong format, causing renders to fail with "Welcome to Remotion" instead of the actual video content.
+
+**This is now handled automatically by the server.** The information below is kept for reference and if you want to update to the new format in the future.
 
 **Current edge function code sends:**
 ```typescript

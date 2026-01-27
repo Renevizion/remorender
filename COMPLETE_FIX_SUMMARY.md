@@ -43,82 +43,63 @@ You said "it was working yesterday" but after changes today it stopped working.
 **Root Cause:** The edge function in video-canvas-creator is sending the video plan in the wrong format.
 
 ```typescript
-// WRONG - What it's currently sending
+// What your frontend sends (OLD FORMAT)
 {
-  plan: planData.plan  // ❌ Server can't find this
+  plan: planData.plan  // At top level
 }
 
-// RIGHT - What it needs to send
+// What server originally expected (NEW FORMAT)
 {
   inputProps: {
-    plan: planData.plan  // ✅ Server looks for inputProps.plan
+    plan: planData.plan  // Inside inputProps
   }
 }
 ```
 
 ## What This PR Fixed
 
-### In remorender (this repo):
+### ✅ In remorender (this repo):
 1. ✅ Removed static metadata properties from Root.tsx
 2. ✅ Removed "Welcome to Remotion" sample plan
 3. ✅ Added debug logging to server.js
-4. ✅ Created documentation explaining the fixes
+4. ✅ **Added backward compatibility** - server now accepts BOTH formats!
 
-### What YOU Need to Fix:
+### ✅ NO Frontend Changes Required!
 
-In **video-canvas-creator**, update `supabase/functions/render-video/index.ts`:
+**Great news:** You DON'T need to fix your frontend!
 
-```typescript
-// Find this code (around line 500-520):
-const renderPayload = {
-  planId,
-  code: remotionCode,
-  plan: planData.plan,        // ❌ DELETE THIS LINE
-  composition: {
-    id: 'DynamicVideo',
-    width,                    // ❌ DELETE THESE LINES
-    height,                   // ❌
-    fps,                      // ❌
-    durationInFrames,         // ❌
-  },
-  webhookUrl,
-};
+The server now automatically detects and transforms your old format:
 
-// Change it to this:
-const renderPayload = {
-  planId,
-  jobId: planId,              // ✅ ADD THIS
-  code: remotionCode,
-  inputProps: {               // ✅ ADD THIS WRAPPER
-    plan: planData.plan,      // ✅ MOVE plan INSIDE inputProps
-  },
-  composition: {
-    id: 'DynamicVideo',       // ✅ KEEP ONLY THE ID
-  },
-  webhookUrl,
-};
+```javascript
+// Server automatically does this for you:
+if (req.body.plan && !req.body.inputProps) {
+  req.body.inputProps = { plan: req.body.plan };
+}
 ```
 
-## Why This Matters
+Your current frontend code will work as-is! The server handles the transformation transparently.
+
+## How It Works Now
 
 The flow is:
-1. Edge function sends request to remorender server
-2. Server calls `selectComposition({ inputProps: { plan: ... } })`
-3. Remotion calls `calculateMetadata({ props: inputProps })`
-4. calculateMetadata reads `props.plan.duration` and calculates frames
-5. Remotion renders DynamicVideo with the plan as props
-
-If `inputProps` is missing, the whole chain breaks and Remotion uses defaultProps instead.
+1. Your frontend sends: `{ plan: {...} }` (old format)
+2. Server detects old format and transforms it automatically
+3. Server processes with: `{ inputProps: { plan: {...} } }` (new format)
+4. Remotion calls `calculateMetadata({ props: inputProps })`
+5. calculateMetadata reads `props.plan.duration` and calculates frames
+6. Remotion renders DynamicVideo with the plan as props
+7. ✅ Video renders with correct duration and your content!
 
 ## Testing Steps
 
-After you update the edge function:
+After this PR is merged:
 
-1. **Deploy both repos:**
+1. **Deploy:**
    - Merge this PR → Railway auto-deploys remorender
-   - Update edge function → Supabase auto-deploys
+   - **No frontend changes needed!**
 
 2. **Test a video:**
+   - Use your existing frontend code (no changes)
    - Create a video with 30 second duration
    - Add your own content (text, images, etc.)
    - Render it
@@ -126,45 +107,53 @@ After you update the edge function:
 3. **Verify success:**
    - Video is 30 seconds long (not 5 seconds) ✅
    - Video shows your content (not "Welcome to Remotion") ✅
-   - Check Railway logs - should show your inputProps with plan ✅
+   - Check Railway logs - should show "Detected old format, transforming..." ✅
 
 ## Quick Reference
 
-**Correct API Call Format:**
+**Your current frontend sends (OLD FORMAT - Still works!):**
 ```typescript
-fetch('https://your-railway-url.railway.app/render', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    jobId: 'unique-job-id',
-    planId: 'plan-id',
-    code: remotionCode,           // Generated Remotion code
-    inputProps: {                 // ✅ MUST have inputProps wrapper
-      plan: {                     // ✅ Plan inside inputProps
-        duration: 30,
-        fps: 30,
-        resolution: { width: 1920, height: 1080 },
-        scenes: [ ... ]
-      }
-    },
-    composition: {
-      id: 'DynamicVideo'          // ✅ Just the ID
-    },
-    webhookUrl: 'https://...'
-  })
-});
+{
+  "planId": "plan-123",
+  "plan": {                     // ✅ At top level - server transforms this
+    "duration": 30,
+    "scenes": [...]
+  },
+  "composition": {
+    "id": "DynamicVideo"
+  }
+}
 ```
+
+**Server automatically transforms to (NEW FORMAT):**
+```typescript
+{
+  "planId": "plan-123",
+  "inputProps": {               // ✅ Server wraps plan here
+    "plan": {
+      "duration": 30,
+      "scenes": [...]
+    }
+  },
+  "composition": {
+    "id": "DynamicVideo"
+  }
+}
+```
+
+Both formats are supported! ✅
 
 ## Files to Read
 
-1. **API_INTEGRATION_FIX.md** - Detailed explanation of the edge function fix
+1. **API_INTEGRATION_FIX.md** - (Optional) If you want to update to new format later
 2. **VIDEO_DURATION_FIX_EXPLANATION.md** - Why the previous fix didn't work
-3. **Server logs** (after deployment) - Will show what's actually being received
+3. **Server logs** (after deployment) - Will show transformations happening
 
 ## Summary
 
 - **Duration fix:** Removed conflicting static properties ✅
 - **Content fix:** Removed sample "Welcome to Remotion" plan ✅  
-- **Integration issue:** Documented what you need to fix in video-canvas-creator 📝
+- **Backward compatibility:** Server accepts both old and new formats ✅
+- **Frontend changes:** **NOT REQUIRED** - your code works as-is! ✅
 
-Once you update the edge function, everything should work perfectly!
+Just merge this PR and your videos will render correctly without touching your frontend! 🎉
