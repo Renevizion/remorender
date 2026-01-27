@@ -8,7 +8,7 @@ This document explains the key differences between **our Remorender system** and
 
 ## Quick Summary
 
-| Aspect | Our System (Remorender) | Claude Example |
+| Aspect | Our System (Remorender) | Claude Example (Manual Remotion) |
 |--------|------------------------|----------------|
 | **Purpose** | Automated video generation from data | Manual video composition |
 | **Abstraction** | High-level (data-driven) | Low-level (code-based) |
@@ -106,7 +106,11 @@ export const DynamicVideo: React.FC<DynamicVideoProps> = ({ plan }) => {
     <AbsoluteFill>
       {/* Dynamically render each scene */}
       {scenes.map((scene) => (
-        <Sequence from={scene.startTime * fps} durationInFrames={scene.duration * fps}>
+        <Sequence 
+          key={scene.id}
+          from={scene.startTime * fps} 
+          durationInFrames={scene.duration * fps}
+        >
           <SceneRenderer 
             scene={scene}  // Pass data to generic renderer
             globalStyle={style}
@@ -123,6 +127,7 @@ const SceneRenderer = ({ scene, globalStyle }) => {
     <AbsoluteFill>
       {scene.elements.map((element) => (
         <ElementRenderer 
+          key={element.id}
           element={element}  // Dynamically choose renderer based on element.type
           globalStyle={globalStyle}
         />
@@ -134,11 +139,17 @@ const SceneRenderer = ({ scene, globalStyle }) => {
 // Element renderer switches based on type
 const ElementRenderer = ({ element }) => {
   switch (element.type) {
-    case 'text': return <TextElement {...element} />;
-    case 'emoji': return <EmojiElement {...element} />;
-    case 'image': return <ImageElement {...element} />;
-    case 'shape': return <ShapeElement {...element} />;
+    case 'text': 
+      return <TextElement {...element} />;
+    case 'emoji': 
+      return <EmojiElement {...element} />;
+    case 'image': 
+      return <ImageElement {...element} />;
+    case 'shape': 
+      return <ShapeElement {...element} />;
     // ... many more types
+    default:
+      return null; // Unknown element type
   }
 };
 ```
@@ -467,10 +478,22 @@ export const MobaJumpCommercial = () => {
 }
 
 // System interprets and applies
-const useElementAnimation = (element) => {
-  switch (element.animation.type) {
+const useElementAnimation = (element, sceneFrame, fps) => {
+  const anim = element.animation;
+  const delay = anim.delay * fps;
+  const duration = anim.duration * fps;
+  
+  // Calculate progress based on current frame
+  const progress = interpolate(
+    sceneFrame,
+    [delay, delay + duration],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
+  
+  switch (anim.type) {
     case 'slideUp':
-      return interpolate(progress, [0, 1], element.animation.properties.y);
+      return interpolate(progress, [0, 1], anim.properties.y);
     case 'fadeIn':
       return interpolate(progress, [0, 1], [0, 1]);
     // ... pre-built animations
@@ -664,7 +687,12 @@ Each element has:
 </h1>
 
 {/* Custom problem list */}
-{problems.map((problem, index) => (
+{/* Note: 'problems' would be defined earlier in the component as an array */}
+{[
+  { icon: '💻', text: 'Learning Xcode' },
+  { icon: '🔨', text: 'Building native code' },
+  { icon: '📱', text: 'Testing on devices' }
+].map((problem, index) => (
   <div key={index} style={{
     display: 'flex',
     alignItems: 'center',
@@ -921,7 +949,7 @@ Both approaches use Remotion but serve different purposes:
 
 Think of it this way:
 - **Our system** = Microsoft Word (template → fill in content → generate document)
-- **Claude example** = Adobe InDesign (design everything manually → perfect control)
+- **Claude Example** = Adobe InDesign (design everything manually → perfect control)
 
 Choose based on your needs:
 - Need many videos? → Our system
