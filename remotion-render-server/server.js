@@ -120,6 +120,10 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     console.log(`[${jobId}] Processing render asynchronously...`);
     console.log(`[${jobId}] Composition ID: ${composition.id}`);
     
+    // Create temp directory for output file
+    tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+    
     // Determine if we should use local components or custom code
     const useLocalComponents = composition.id === 'DynamicVideo' || !code;
     
@@ -136,14 +140,10 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
       // Use custom code sent from client (legacy mode)
       console.log(`[${jobId}] Using custom code from client...`);
       
-      // Step 1: Write the Remotion component code to a temp file
-      tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
-      fs.mkdirSync(tempDir, { recursive: true });
-      
       const entryPoint = path.join(tempDir, 'index.tsx');
       fs.writeFileSync(entryPoint, code);
       
-      // Step 2: Bundle the Remotion project
+      // Bundle the Remotion project
       bundleLocation = await bundle({
         entryPoint,
         webpackOverride: getWebpackOverride
@@ -288,11 +288,14 @@ app.post('/render', renderLimiter, async (req, res) => {
     console.log('Starting synchronous render...');
     console.log('Composition ID:', composition.id);
     
+    // Create temp directory for output file
+    const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+    
     // Determine if we should use local components or custom code
     const useLocalComponents = composition.id === 'DynamicVideo' || !code;
     
     let bundleLocation;
-    let tempDir = null;
     
     if (useLocalComponents) {
       // Use the local Remotion project (DynamicVideo component)
@@ -307,14 +310,10 @@ app.post('/render', renderLimiter, async (req, res) => {
       // Use custom code sent from client (legacy mode)
       console.log('Using custom code from client...');
       
-      // Step 1: Write the Remotion component code to a temp file
-      tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
-      fs.mkdirSync(tempDir, { recursive: true });
-      
       const entryPoint = path.join(tempDir, 'index.tsx');
       fs.writeFileSync(entryPoint, code);
       
-      // Step 2: Bundle the Remotion project
+      // Bundle the Remotion project
       bundleLocation = await bundle({
         entryPoint,
         webpackOverride: getWebpackOverride
@@ -358,10 +357,8 @@ app.post('/render', renderLimiter, async (req, res) => {
     
     console.log('Upload complete:', publicUrl);
     
-    // Cleanup temp files if any were created
-    if (tempDir) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    // Cleanup temp files
+    fs.rmSync(tempDir, { recursive: true, force: true });
     
     res.json({
       success: true,
