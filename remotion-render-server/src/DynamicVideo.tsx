@@ -899,13 +899,22 @@ const ElementRenderer: React.FC<{
     );
   }
   
-  // 3D Card: Simple implementation using Rect with transforms
+  // 3D Card: Implementation with proper style support (backgroundImage, etc.)
   if (styleType === '3d-card' || content.includes('3d card') || content.includes('perspective card')) {
     const entrySpring = spring({ fps, frame: sceneFrame, config: { damping: 25, stiffness: 70 } });
     const floatY = noise3D('float-' + element.id, 0, 0, sceneFrame * 0.02) * 10;
     const rotateY = interpolate(entrySpring, [0, 1], [-15, 5]);
     const width = (element.size?.width || 400);
     const height = (element.size?.height || 280);
+    const cardStyle = element.style as Record<string, unknown>;
+    
+    // Extract style properties
+    const background = cardStyle?.background as string || 'rgba(255,255,255,0.1)';
+    const backgroundImage = cardStyle?.backgroundImage as string;
+    const backgroundSize = cardStyle?.backgroundSize as string || 'cover';
+    const backgroundPosition = cardStyle?.backgroundPosition as string || 'center';
+    const borderRadius = cardStyle?.borderRadius as number || 24;
+    const boxShadow = cardStyle?.boxShadow as string || '0 10px 30px rgba(0,0,0,0.1)';
     
     return wrapWithMotionBlur(
       <div style={{
@@ -916,22 +925,27 @@ const ElementRenderer: React.FC<{
         <div style={{
           transform: `rotateY(${rotateY}deg) scale(${entrySpring})`,
           transformStyle: 'preserve-3d',
+          width,
+          height,
+          position: 'relative',
         }}>
-          <Rect 
-            width={width} 
-            height={height} 
-            fill="rgba(255,255,255,0.1)" 
-            cornerRadius={24} 
-          />
           <div style={{
-            position: 'absolute',
-            inset: 0,
+            width: '100%',
+            height: '100%',
+            background,
+            backgroundImage,
+            backgroundSize,
+            backgroundPosition,
+            borderRadius,
+            boxShadow,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 24,
+            padding: 20,
             color: '#fff',
+            fontSize: 28,
+            fontWeight: 700,
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
           }}>
             {element.content || ''}
           </div>
