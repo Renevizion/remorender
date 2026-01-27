@@ -257,6 +257,15 @@ app.get('/health', (req, res) => {
 // Main render endpoint
 app.post('/render', renderLimiter, async (req, res) => {
   try {
+    // Backward compatibility: Transform old format to new format
+    // Old format: { plan: {...} } at top level
+    // New format: { inputProps: { plan: {...} } }
+    if (req.body.plan && !req.body.inputProps) {
+      console.log('Detected old format (plan at top level), transforming to new format...');
+      req.body.inputProps = { plan: req.body.plan };
+      delete req.body.plan; // Remove from top level to avoid confusion
+    }
+    
     const { code, composition, inputProps, webhookUrl, jobId, planId } = req.body;
     
     console.log('Starting render...');
