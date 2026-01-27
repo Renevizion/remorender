@@ -69,6 +69,22 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           plan: samplePlan,
         }}
+        calculateMetadata={({ props }) => {
+          const plan = props.plan as VideoPlan;
+          
+          // Use plan values if available, otherwise fall back to defaults
+          const fps = plan?.fps || 30;
+          const duration = plan?.duration || 5;
+          const width = plan?.resolution?.width || 1920;
+          const height = plan?.resolution?.height || 1080;
+          
+          return {
+            fps,
+            durationInFrames: Math.round(duration * fps),
+            width,
+            height,
+          };
+        }}
       />
 
       {/* Sample composition for testing */}
