@@ -62,10 +62,6 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="DynamicVideo"
         component={DynamicVideo as any}
-        durationInFrames={150}
-        fps={30}
-        width={1920}
-        height={1080}
         defaultProps={{
           plan: samplePlan,
         }}
