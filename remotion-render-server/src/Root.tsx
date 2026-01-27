@@ -8,40 +8,14 @@ import type { VideoPlan } from './types/video';
 // This is the entry point for Remotion Studio
 // Register all your compositions here
 
-// Sample video plan for DynamicVideo
-const samplePlan: VideoPlan = {
-  id: 'sample-1',
+// Empty default plan for Studio preview
+// When rendering via API, the actual video plan should be passed via inputProps
+const defaultStudioPlan: VideoPlan = {
+  id: 'default-studio',
   duration: 5,
   fps: 30,
   resolution: { width: 1920, height: 1080 },
-  scenes: [
-    {
-      id: 'scene-1',
-      startTime: 0,
-      duration: 5,
-      description: 'Welcome scene with animated text',
-      elements: [
-        {
-          id: 'text-1',
-          type: 'text',
-          content: 'Welcome to Remotion',
-          position: { x: 50, y: 50, z: 1 },
-          size: { width: 80, height: 20 },
-          style: { fontSize: 72, fontWeight: 800 },
-          animation: {
-            name: 'fadeIn',
-            type: 'fade',
-            duration: 1,
-            delay: 0,
-            easing: 'ease-out',
-            properties: {},
-          },
-        },
-      ],
-      animations: [],
-      transition: null,
-    },
-  ],
+  scenes: [],
   requiredAssets: [],
   style: {
     colorPalette: ['#ffffff', '#06b6d4', '#1e293b', '#0f172a'],
@@ -63,7 +37,7 @@ export const RemotionRoot: React.FC = () => {
         id="DynamicVideo"
         component={DynamicVideo as any}
         defaultProps={{
-          plan: samplePlan,
+          plan: defaultStudioPlan,
         }}
         calculateMetadata={({ props }) => {
           const plan = props.plan as VideoPlan;
