@@ -1687,6 +1687,7 @@ const ImageElement: React.FC<{
             width: '100%',
             height: '100%',
             overflow: 'hidden',
+            border: (imageStyle?.border as string) || undefined,
             borderRadius: (imageStyle?.borderRadius as number) || 16,
             boxShadow: (imageStyle?.boxShadow as string) || '0 25px 50px rgba(0,0,0,0.35)',
           }}
@@ -1697,7 +1698,8 @@ const ImageElement: React.FC<{
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: (imageStyle?.objectFit as string) || 'cover',
+              objectPosition: (imageStyle?.objectPosition as string) || 'center',
               filter: (imageStyle?.filter as string) || 'brightness(1.05) contrast(1.02)',
               transform: `scale(${kenBurnsScale * parallaxMultiplier}) translate(${kenBurnsPanX}%, ${kenBurnsPanY}%)`,
             }}
