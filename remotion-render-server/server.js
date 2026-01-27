@@ -119,6 +119,7 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
   try {
     console.log(`[${jobId}] Processing render asynchronously...`);
     console.log(`[${jobId}] Composition ID: ${composition.id}`);
+    console.log(`[${jobId}] Input Props:`, JSON.stringify(inputProps, null, 2));
     
     // Create temp directory for output file
     tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
@@ -262,6 +263,8 @@ app.post('/render', renderLimiter, async (req, res) => {
     console.log('Webhook URL:', webhookUrl);
     console.log('Job ID:', jobId);
     console.log('Plan ID:', planId);
+    console.log('Input Props:', JSON.stringify(inputProps, null, 2));
+    console.log('Composition:', JSON.stringify(composition, null, 2));
     
     // If webhook is provided, respond immediately and process async
     const useWebhook = !!webhookUrl;
@@ -287,6 +290,7 @@ app.post('/render', renderLimiter, async (req, res) => {
     // Otherwise, process synchronously (legacy mode)
     console.log('Starting synchronous render...');
     console.log('Composition ID:', composition.id);
+    console.log('Input Props:', JSON.stringify(inputProps, null, 2));
     
     // Create temp directory for output file
     const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);

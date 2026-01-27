@@ -8,8 +8,9 @@ import type { VideoPlan } from './types/video';
 // This is the entry point for Remotion Studio
 // Register all your compositions here
 
-// Empty default plan for Studio preview
-// When rendering via API, the actual video plan should be passed via inputProps
+// Default plan for Studio preview - empty scenes to avoid showing placeholder content
+// When rendering via API, the actual video plan MUST be passed via inputProps.plan
+// This default is only used when opening the composition in Remotion Studio without props
 const defaultStudioPlan: VideoPlan = {
   id: 'default-studio',
   duration: 5,
