@@ -114,23 +114,41 @@ async function uploadVideoViaEdgeFunction(videoBuffer, planId, jobId = null) {
 // Async render processing with webhook callback
 async function processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId) {
   let tempDir = null;
+  let bundleLocation = null;
   
   try {
     console.log(`[${jobId}] Processing render asynchronously...`);
+    console.log(`[${jobId}] Composition ID: ${composition.id}`);
     
-    // Step 1: Write the Remotion component code to a temp file
-    tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
-    fs.mkdirSync(tempDir, { recursive: true });
+    // Determine if we should use local components or custom code
+    const useLocalComponents = composition.id === 'DynamicVideo' || !code;
     
-    const entryPoint = path.join(tempDir, 'index.tsx');
-    fs.writeFileSync(entryPoint, code);
-    
-    // Step 2: Bundle the Remotion project
-    console.log(`[${jobId}] Bundling...`);
-    const bundleLocation = await bundle({
-      entryPoint,
-      webpackOverride: getWebpackOverride
-    });
+    if (useLocalComponents) {
+      // Use the local Remotion project (DynamicVideo component)
+      console.log(`[${jobId}] Using local DynamicVideo component...`);
+      
+      // Bundle the local Remotion project
+      bundleLocation = await bundle({
+        entryPoint: path.join(__dirname, 'src', 'index.tsx'),
+        webpackOverride: getWebpackOverride
+      });
+    } else {
+      // Use custom code sent from client (legacy mode)
+      console.log(`[${jobId}] Using custom code from client...`);
+      
+      // Step 1: Write the Remotion component code to a temp file
+      tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+      
+      const entryPoint = path.join(tempDir, 'index.tsx');
+      fs.writeFileSync(entryPoint, code);
+      
+      // Step 2: Bundle the Remotion project
+      bundleLocation = await bundle({
+        entryPoint,
+        webpackOverride: getWebpackOverride
+      });
+    }
     
     // Step 3: Select composition
     console.log(`[${jobId}] Selecting composition...`);
@@ -267,19 +285,41 @@ app.post('/render', renderLimiter, async (req, res) => {
     }
     
     // Otherwise, process synchronously (legacy mode)
-    // Step 1: Write the Remotion component code to a temp file
-    const tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
-    fs.mkdirSync(tempDir, { recursive: true });
+    console.log('Starting synchronous render...');
+    console.log('Composition ID:', composition.id);
     
-    const entryPoint = path.join(tempDir, 'index.tsx');
-    fs.writeFileSync(entryPoint, code);
+    // Determine if we should use local components or custom code
+    const useLocalComponents = composition.id === 'DynamicVideo' || !code;
     
-    // Step 2: Bundle the Remotion project
-    console.log('Bundling...');
-    const bundleLocation = await bundle({
-      entryPoint,
-      webpackOverride: getWebpackOverride
-    });
+    let bundleLocation;
+    let tempDir = null;
+    
+    if (useLocalComponents) {
+      // Use the local Remotion project (DynamicVideo component)
+      console.log('Using local DynamicVideo component...');
+      
+      // Bundle the local Remotion project
+      bundleLocation = await bundle({
+        entryPoint: path.join(__dirname, 'src', 'index.tsx'),
+        webpackOverride: getWebpackOverride
+      });
+    } else {
+      // Use custom code sent from client (legacy mode)
+      console.log('Using custom code from client...');
+      
+      // Step 1: Write the Remotion component code to a temp file
+      tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+      
+      const entryPoint = path.join(tempDir, 'index.tsx');
+      fs.writeFileSync(entryPoint, code);
+      
+      // Step 2: Bundle the Remotion project
+      bundleLocation = await bundle({
+        entryPoint,
+        webpackOverride: getWebpackOverride
+      });
+    }
     
     // Step 3: Select composition
     console.log('Selecting composition...');
@@ -318,8 +358,10 @@ app.post('/render', renderLimiter, async (req, res) => {
     
     console.log('Upload complete:', publicUrl);
     
-    // Cleanup temp files
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    // Cleanup temp files if any were created
+    if (tempDir) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
     
     res.json({
       success: true,
