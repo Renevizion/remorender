@@ -464,6 +464,8 @@ export const SimpleVideo = () => {
     const outputPath = path.join(tempDir, 'output.mp4');
     
     // Apply codec settings for color accuracy (same as main render endpoint)
+    // Note: /render-simple uses hardcoded high-quality settings for simplicity
+    // Use the main /render endpoint if you need custom codec settings
     const codec = 'h264';
     const pixelFormat = 'yuv444p'; // Better color fidelity than yuv420p
     const videoBitrate = '8M'; // High quality
