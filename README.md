@@ -2,6 +2,14 @@
 
 A complete solution for rendering Remotion videos on Railway/Railpack with client integration examples. This project includes a Node.js/Express server that renders Remotion compositions and uploads them to Supabase storage, along with TypeScript/React client code for easy integration.
 
+## 🎨 Color Consistency Fix (NEW!)
+
+**Videos now have consistent colors between frontend preview and backend rendering!**
+
+We've fixed the color inconsistency issue by implementing `yuv444p` pixel format support, which preserves full color fidelity without chroma subsampling. This ensures your brand colors, gradients, and color grading look identical in preview and final render.
+
+📖 **See [COLOR_CONSISTENCY_FIX.md](./COLOR_CONSISTENCY_FIX.md)** for technical details and migration guide.
+
 ## 🔒 Secure Webhook Approach (Recommended)
 
 **NEW**: For Lovable Cloud users, we now support a secure webhook approach where Railway never needs your Supabase credentials! See [WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md) for the complete guide.
