@@ -20,6 +20,11 @@ interface RenderRequest {
     durationInFrames: number;
   };
   inputProps?: any;
+  codecSettings?: {
+    codec?: string;
+    pixelFormat?: string;
+    videoBitrate?: string;
+  };
 }
 
 serve(async (req) => {
@@ -180,11 +185,17 @@ serve(async (req) => {
       code: renderRequest.code,
       composition: compositionWithResolution, // Use updated composition with plan.resolution
       inputProps: renderRequest.inputProps || {},
+      codecSettings: renderRequest.codecSettings || {
+        codec: 'h264',
+        pixelFormat: 'yuv444p', // Better color fidelity than yuv420p
+        videoBitrate: '8M', // High quality
+      },
       webhookUrl, // Railway will call this URL when done
       aspectRatio, // Include aspect ratio for validation/logging
     }
 
     console.log('Sending render job to Railway:', jobId)
+    console.log('Codec settings:', railwayPayload.codecSettings)
 
     // Send the render request to Railway
     const railwayResponse = await fetch(`${railwayRenderUrl}/render`, {

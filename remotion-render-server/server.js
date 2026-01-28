@@ -112,7 +112,7 @@ async function uploadVideoViaEdgeFunction(videoBuffer, planId, jobId = null) {
 }
 
 // Async render processing with webhook callback
-async function processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId) {
+async function processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId, codecSettings = {}) {
   let tempDir = null;
   let bundleLocation = null;
   
@@ -120,6 +120,7 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     console.log(`[${jobId}] Processing render asynchronously...`);
     console.log(`[${jobId}] Composition ID: ${composition.id}`);
     console.log(`[${jobId}] Input Props:`, JSON.stringify(inputProps, null, 2));
+    console.log(`[${jobId}] Codec Settings:`, JSON.stringify(codecSettings, null, 2));
     
     // Create temp directory for output file
     tempDir = path.join(os.tmpdir(), `remotion-${Date.now()}`);
@@ -163,10 +164,19 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
     console.log(`[${jobId}] Rendering video...`);
     const outputPath = path.join(tempDir, 'output.mp4');
     
+    // Apply codec settings from request or use defaults for color accuracy
+    const codec = codecSettings.codec || 'h264';
+    const pixelFormat = codecSettings.pixelFormat || 'yuv444p'; // Better color fidelity than yuv420p
+    const videoBitrate = codecSettings.videoBitrate || '8M'; // High quality
+    
+    console.log(`[${jobId}] Codec: ${codec}, Pixel Format: ${pixelFormat}, Bitrate: ${videoBitrate}`);
+    
     await renderMedia({
       composition: comp,
       serveUrl: bundleLocation,
-      codec: 'h264',
+      codec: codec,
+      pixelFormat: pixelFormat,
+      videoBitrate: videoBitrate,
       outputLocation: outputPath,
       inputProps: inputProps || {},
       chromiumOptions: {
@@ -266,7 +276,7 @@ app.post('/render', renderLimiter, async (req, res) => {
       delete req.body.plan; // Remove from top level to avoid confusion
     }
     
-    const { code, composition, inputProps, webhookUrl, jobId, planId } = req.body;
+    const { code, composition, inputProps, webhookUrl, jobId, planId, codecSettings } = req.body;
     
     console.log('Starting render...');
     console.log('Webhook URL:', webhookUrl);
@@ -274,6 +284,7 @@ app.post('/render', renderLimiter, async (req, res) => {
     console.log('Plan ID:', planId);
     console.log('Input Props:', JSON.stringify(inputProps, null, 2));
     console.log('Composition:', JSON.stringify(composition, null, 2));
+    console.log('Codec Settings:', JSON.stringify(codecSettings, null, 2));
     
     // If webhook is provided, respond immediately and process async
     const useWebhook = !!webhookUrl;
@@ -289,7 +300,7 @@ app.post('/render', renderLimiter, async (req, res) => {
       
       // Process render asynchronously (fire-and-forget)
       // Errors are handled within the function and sent to webhook
-      processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId)
+      processRenderWithWebhook(code, composition, inputProps, webhookUrl, jobId, planId, codecSettings)
         .catch(error => {
           console.error(`[${jobId}] Unhandled error in processRenderWithWebhook:`, error);
         });
@@ -345,10 +356,19 @@ app.post('/render', renderLimiter, async (req, res) => {
     console.log('Rendering video...');
     const outputPath = path.join(tempDir, 'output.mp4');
     
+    // Apply codec settings from request or use defaults for color accuracy
+    const codec = codecSettings?.codec || 'h264';
+    const pixelFormat = codecSettings?.pixelFormat || 'yuv444p'; // Better color fidelity than yuv420p
+    const videoBitrate = codecSettings?.videoBitrate || '8M'; // High quality
+    
+    console.log(`Codec: ${codec}, Pixel Format: ${pixelFormat}, Bitrate: ${videoBitrate}`);
+    
     await renderMedia({
       composition: comp,
       serveUrl: bundleLocation,
-      codec: 'h264',
+      codec: codec,
+      pixelFormat: pixelFormat,
+      videoBitrate: videoBitrate,
       outputLocation: outputPath,
       inputProps: inputProps || {},
       chromiumOptions: {
