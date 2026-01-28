@@ -74,7 +74,7 @@ Config.setChromiumOpenGlRenderer('angle'); // Better color rendering
 
 ### x264Preset: 'medium'
 - Balances encoding speed with quality
-- Options: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+- Options: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placebo
 - 'medium' provides good quality without excessive encoding time
 
 ### gl: 'angle'
