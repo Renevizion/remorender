@@ -169,8 +169,14 @@ async function processRenderWithWebhook(code, composition, inputProps, webhookUr
       codec: 'h264',
       outputLocation: outputPath,
       inputProps: inputProps || {},
+      // Color space and encoding configuration for consistent colors
+      pixelFormat: 'yuv420p',
+      imageFormat: 'png', // Use PNG for better color fidelity during frame extraction
+      crf: 18, // High quality (0-51, lower is better)
+      x264Preset: 'medium', // Balanced quality/speed
       chromiumOptions: {
-        headless: true
+        headless: true,
+        gl: 'angle' // Better color rendering
       },
       onProgress: ({ progress }) => {
         console.log(`[${jobId}] Render progress: ${Math.round(progress * 100)}%`);
@@ -351,8 +357,14 @@ app.post('/render', renderLimiter, async (req, res) => {
       codec: 'h264',
       outputLocation: outputPath,
       inputProps: inputProps || {},
+      // Color space and encoding configuration for consistent colors
+      pixelFormat: 'yuv420p',
+      imageFormat: 'png', // Use PNG for better color fidelity during frame extraction
+      crf: 18, // High quality (0-51, lower is better)
+      x264Preset: 'medium', // Balanced quality/speed
       chromiumOptions: {
-        headless: true
+        headless: true,
+        gl: 'angle' // Better color rendering
       },
       onProgress: ({ progress }) => {
         console.log(`Render progress: ${Math.round(progress * 100)}%`);
@@ -449,8 +461,14 @@ export const SimpleVideo = () => {
       codec: 'h264',
       outputLocation: outputPath,
       inputProps: {},
+      // Color space and encoding configuration for consistent colors
+      pixelFormat: 'yuv420p',
+      imageFormat: 'png', // Use PNG for better color fidelity during frame extraction
+      crf: 18, // High quality (0-51, lower is better)
+      x264Preset: 'medium', // Balanced quality/speed
       chromiumOptions: {
-        headless: true
+        headless: true,
+        gl: 'angle' // Better color rendering
       },
       onProgress: ({ progress }) => {
         console.log(`Render progress: ${Math.round(progress * 100)}%`);
