@@ -463,10 +463,19 @@ export const SimpleVideo = () => {
     console.log('Rendering simple video...');
     const outputPath = path.join(tempDir, 'output.mp4');
     
+    // Apply codec settings for color accuracy (same as main render endpoint)
+    const codec = 'h264';
+    const pixelFormat = 'yuv444p'; // Better color fidelity than yuv420p
+    const videoBitrate = '8M'; // High quality
+    
+    console.log(`Codec: ${codec}, Pixel Format: ${pixelFormat}, Bitrate: ${videoBitrate}`);
+    
     await renderMedia({
       composition: comp,
       serveUrl: bundleLocation,
-      codec: 'h264',
+      codec: codec,
+      pixelFormat: pixelFormat,
+      videoBitrate: videoBitrate,
       outputLocation: outputPath,
       inputProps: {},
       chromiumOptions: {
