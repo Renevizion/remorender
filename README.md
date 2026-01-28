@@ -52,6 +52,7 @@ remorender/
 
 - 🎥 Render custom Remotion compositions on-demand
 - 🔍 **NEW**: Analyze videos to extract visual patterns and styles
+- 🎨 **NEW**: Consistent colors between preview and render (see [COLOR_CONSISTENCY_FIX.md](./COLOR_CONSISTENCY_FIX.md))
 - ☁️ Automatic upload to Supabase storage
 - 🔒 **NEW**: Secure webhook approach for Lovable Cloud
 - 🎬 **NEW**: Remotion Studio support for local preview and editing
@@ -309,6 +310,8 @@ curl -X POST http://localhost:3001/render-simple \
 ## Documentation
 
 - **[Remotion Studio Guide](./REMOTION_STUDIO.md)** - How to preview and edit videos locally
+- **[Color Consistency Fix](./COLOR_CONSISTENCY_FIX.md)** - Ensures consistent colors between preview and render
+- **[Testing Color Fix](./TESTING_COLOR_FIX.md)** - How to test color consistency
 - **[Code Format Guide](./CODE_FORMAT_GUIDE.md)** - Required code format for server rendering (important!)
 - [Server Documentation](./remotion-render-server/README.md) - Detailed server setup and API docs
 - [Client Examples](./client-examples/README.md) - Integration examples and usage
